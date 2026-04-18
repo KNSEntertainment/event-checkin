@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { initDB, getEvent, deleteEvent, getEventsByClerkId, updateEvent } from '@/lib/database-vercel';
+import { connectDB, getEventById, deleteEvent, getEventsByClerkId, updateEvent } from '@/lib/database-mongodb';
 
 export async function GET(
   request: NextRequest,
@@ -16,8 +16,9 @@ export async function GET(
       );
     }
 
-    const db = initDB();
-    const event = await getEvent(db, eventId);
+    // Connect to MongoDB
+    await connectDB();
+    const event = await getEventById({}, eventId);
 
     if (!event) {
       return NextResponse.json(
@@ -58,10 +59,11 @@ export async function DELETE(
       );
     }
 
-    const db = initDB();
+    // Connect to MongoDB
+    await connectDB();
     
     // Check if event exists and belongs to user
-    const event = await getEvent(db, eventId);
+    const event = await getEventById({}, eventId);
     if (!event) {
       return NextResponse.json(
         { error: 'Event not found' },
@@ -70,7 +72,7 @@ export async function DELETE(
     }
 
     // Get user's organizer to verify ownership
-    const userEvents = await getEventsByClerkId(db, userId);
+    const userEvents = await getEventsByClerkId({}, userId);
     const userEventIds = userEvents.map(e => e.id);
     
     if (!userEventIds.includes(eventId)) {
@@ -80,7 +82,7 @@ export async function DELETE(
       );
     }
 
-    await deleteEvent(db, eventId);
+    await deleteEvent({}, eventId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -123,10 +125,11 @@ export async function PUT(
       );
     }
 
-    const db = initDB();
+    // Connect to MongoDB
+    await connectDB();
     
     // Check if event exists and belongs to user
-    const event = await getEvent(db, eventId);
+    const event = await getEventById({}, eventId);
     if (!event) {
       return NextResponse.json(
         { error: 'Event not found' },
@@ -135,7 +138,7 @@ export async function PUT(
     }
 
     // Get user's organizer to verify ownership
-    const userEvents = await getEventsByClerkId(db, userId);
+    const userEvents = await getEventsByClerkId({}, userId);
     const userEventIds = userEvents.map(e => e.id);
     
     if (!userEventIds.includes(eventId)) {
@@ -145,7 +148,7 @@ export async function PUT(
       );
     }
 
-    const updatedEvent = await updateEvent(db, eventId, { name, date });
+    const updatedEvent = await updateEvent({}, eventId, { name, date });
     
     if (!updatedEvent) {
       return NextResponse.json(

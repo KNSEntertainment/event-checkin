@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initDB, getEventStats } from '@/lib/database-vercel';
+import { connectDB, getEventStats } from '@/lib/database-mongodb';
 
 export async function GET(
   request: NextRequest,
@@ -15,8 +15,9 @@ export async function GET(
       );
     }
 
-    const db = initDB();
-    const stats = await getEventStats(db, eventId);
+    // Connect to MongoDB
+    await connectDB();
+    const stats = await getEventStats({}, eventId);
 
     return NextResponse.json({ stats });
   } catch (error) {

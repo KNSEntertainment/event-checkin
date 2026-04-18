@@ -39,6 +39,7 @@ export default function CheckinAppPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [stats, setStats] = useState<EventStats>({ total_registered: 0, total_checked_in: 0 });
   const [searchQuery, setSearchQuery] = useState('');
+  const [allRegistrations, setAllRegistrations] = useState<Registration[]>([]);
   const [searchResults, setSearchResults] = useState<Registration[]>([]);
   const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,19 +73,23 @@ export default function CheckinAppPage() {
 
   const fetchEventData = async () => {
     try {
-      const [eventRes, statsRes] = await Promise.all([
+      const [eventRes, statsRes, registrationsRes] = await Promise.all([
         fetch(`/api/events/${eventId}`),
-        fetch(`/api/events/${eventId}/stats`)
+        fetch(`/api/events/${eventId}/stats`),
+        fetch(`/api/events/${eventId}/registrations`)
       ]);
 
-      if (eventRes.ok && statsRes.ok) {
-        const [eventData, statsData] = await Promise.all([
+      if (eventRes.ok && statsRes.ok && registrationsRes.ok) {
+        const [eventData, statsData, registrationsData] = await Promise.all([
           eventRes.json(),
-          statsRes.json()
+          statsRes.json(),
+          registrationsRes.json()
         ]);
 
         setEvent(eventData.event);
         setStats(statsData.stats);
+        setAllRegistrations(registrationsData.registrations);
+        setSearchResults(registrationsData.registrations);
       } else {
         setError('Failed to load event data');
       }
@@ -95,22 +100,19 @@ export default function CheckinAppPage() {
     }
   };
 
-  const handleSearch = async () => {
+  const handleSearch = () => {
     if (!searchQuery.trim()) {
-      setSearchResults([]);
-      setSearchLoading(false);
+      setSearchResults(allRegistrations);
       return;
     }
 
     setSearchLoading(true);
     try {
-      const response = await fetch(`/api/events/${eventId}/search?phone=${encodeURIComponent(searchQuery)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSearchResults(data.registrations);
-      } else {
-        setError('Search failed');
-      }
+      const filtered = allRegistrations.filter(reg => 
+        reg.phone.includes(searchQuery) || 
+        reg.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setSearchResults(filtered);
     } catch (err) {
       setError('Search error occurred');
     } finally {
@@ -129,15 +131,20 @@ export default function CheckinAppPage() {
       searchTimeoutRef.current = null;
     }
     
-    // Only search if we have at least 3 digits (reasonable phone number length)
-    if (value.length >= 3) {
+    // Filter all registrations based on search query
+    if (value.length >= 2) {
       setSearchLoading(true);
       searchTimeoutRef.current = setTimeout(() => {
-        handleSearch();
+        const filtered = allRegistrations.filter(reg => 
+          reg.phone.includes(value) || 
+          reg.name.toLowerCase().includes(value.toLowerCase())
+        );
+        setSearchResults(filtered);
+        setSearchLoading(false);
       }, 500); // 500ms delay for debouncing
     } else {
-      // Clear results if phone is too short
-      setSearchResults([]);
+      // Show all registrations if search is too short
+      setSearchResults(allRegistrations);
       setSearchLoading(false);
     }
   };
@@ -291,23 +298,23 @@ export default function CheckinAppPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
+            <button
+              onClick={() => router.push(`/event/${eventId}`)}
+              className="px-4 py-2 mb-6 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              Back to Event
+            </button>
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Check-in App</h1>
               <p className="mt-1 text-lg text-blue-600">{event?.name}</p>
             </div>
-            <button
-              onClick={() => router.push(`/event/${eventId}`)}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-            >
-              Back to Event
-            </button>
           </div>
         </div>
 
         {/* Live Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white shadow rounded-lg p-6">
             <h3 className="text-lg font-medium text-gray-900">Total Registered</h3>
             <p className="mt-2 text-4xl font-bold text-blue-600">{stats.total_registered}</p>
@@ -341,9 +348,7 @@ export default function CheckinAppPage() {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Type at least 3 digits to automatically search
-              </p>
+           
             </div>
 
             {/* QR Scanner */}
@@ -380,15 +385,15 @@ export default function CheckinAppPage() {
         {searchResults.length > 0 && (
           <div className="bg-white shadow rounded-lg p-6 mb-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Search Results</h3>
-            <div className="space-y-3">
+            <div className="space-y-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
               {searchResults.map((registration) => (
                 <div key={registration.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-medium text-gray-900">{registration.name}</p>
-                      <p className="text-sm text-gray-600">{registration.phone}</p>
-                      <p className="text-sm text-gray-600">Adults: {registration.adults_count}</p>
-                      <p className="text-sm text-gray-600">Children: {registration.children_count}</p>
+                      <p className="font-bold text-gray-900">{registration.name}</p>
+                      <p className="text-sm font-meduim text-gray-600">{registration.phone}</p>
+                      <p className="text-sm font-meduim text-gray-600">Adults: {registration.adults_count}</p>
+                      <p className="text-sm font-meduim text-gray-600">Children: {registration.children_count}</p>
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
@@ -396,7 +401,7 @@ export default function CheckinAppPage() {
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {registration.checked_in ? 'Checked In' : 'Not Checked In'}
+                        {registration.checked_in ? 'Checked In' : ''}
                       </span>
                       {!registration.checked_in && (
                         <button
@@ -414,6 +419,8 @@ export default function CheckinAppPage() {
             </div>
           </div>
         )}
+
+        
 
         {/* Selected Registration */}
         {selectedRegistration && (

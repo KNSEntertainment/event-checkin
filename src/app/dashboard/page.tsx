@@ -127,7 +127,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div className="mb-4 sm:mb-0">
-                <h1 className="text-4xl font-bold text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   My Events Dashboard
                 </h1>
                 <p className="mt-2 text-lg text-gray-600">
@@ -146,7 +146,7 @@ export default function DashboardPage() {
               <div className="flex space-x-3">
                 <Link
                   href="/create-event"
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />

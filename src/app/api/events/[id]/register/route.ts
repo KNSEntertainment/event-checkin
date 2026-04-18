@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initDB, createRegistration, getEvent } from '@/lib/database-vercel';
+import { connectDB, createRegistration, getEventById } from '@/lib/database-mongodb';
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -39,10 +39,11 @@ export async function POST(
       }
     }
 
-    const db = initDB();
+    // Connect to MongoDB
+    await connectDB();
     
     // Verify event exists
-    const event = await getEvent(db, eventId);
+    const event = await getEventById({}, eventId);
     if (!event) {
       return NextResponse.json(
         { error: 'Event not found' },
@@ -51,7 +52,7 @@ export async function POST(
     }
 
     // Create registration
-    const registration = await createRegistration(db, {
+    const registration = await createRegistration({}, {
       event_id: eventId,
       name,
       phone,

@@ -20,8 +20,8 @@ interface RegistrationData {
   name: string;
   phone: string;
   address: string;
-  adults_count: number;
-  children_count: number;
+  adults_count: number | string;
+  children_count: number | string;
 }
 
 interface AddressSuggestion {
@@ -216,11 +216,18 @@ export default function RegisterPage() {
     setIsLoading(true);
     setError('');
 
+    // Convert string values to numbers for submission
+    const submissionData = {
+      ...formData,
+      adults_count: formData.adults_count === '' ? 1 : parseInt(formData.adults_count.toString()),
+      children_count: formData.children_count === '' ? 0 : parseInt(formData.children_count.toString()),
+    };
+
     try {
       const response = await fetch(`/api/events/${eventId}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submissionData),
       });
 
       if (response.ok) {
@@ -442,9 +449,17 @@ export default function RegisterPage() {
                 max="20"
                 required
                 value={formData.adults_count}
-                onChange={e =>
-                  setFormData(prev => ({ ...prev, adults_count: parseInt(e.target.value) || 1 }))
-                }
+                onChange={e => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    setFormData(prev => ({ ...prev, adults_count: '' }));
+                  } else {
+                    const numValue = parseInt(value);
+                    if (!isNaN(numValue)) {
+                      setFormData(prev => ({ ...prev, adults_count: numValue }));
+                    }
+                  }
+                }}
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
               />
             </div>
@@ -461,12 +476,17 @@ export default function RegisterPage() {
                 min="0"
                 max="20"
                 value={formData.children_count}
-                onChange={e =>
-                  setFormData(prev => ({
-                    ...prev,
-                    children_count: parseInt(e.target.value) || 0,
-                  }))
-                }
+                onChange={e => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    setFormData(prev => ({ ...prev, children_count: '' }));
+                  } else {
+                    const numValue = parseInt(value);
+                    if (!isNaN(numValue)) {
+                      setFormData(prev => ({ ...prev, children_count: numValue }));
+                    }
+                  }
+                }}
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
               />
             </div>

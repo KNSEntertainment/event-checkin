@@ -2,11 +2,9 @@
 
 import Link from 'next/link';
 import { useUser, SignInButton, UserButton } from '@clerk/nextjs';
-import { useState } from 'react';
 
 export default function Header() {
   const { isSignedIn, user } = useUser();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
@@ -24,12 +22,10 @@ export default function Header() {
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          {/* Navigation - Desktop and Mobile */}
+          <nav className="flex items-center">
             {isSignedIn ? (
-              <>
-                <UserButton />
-              </>
+              <UserButton />
             ) : (
               <SignInButton mode="modal">
                 <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
@@ -38,46 +34,7 @@ export default function Header() {
               </SignInButton>
             )}
           </nav>
-
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-gray-600 hover:text-gray-900 p-2"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
-          </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 py-4">
-            <nav className="flex flex-col space-y-4">
-              {isSignedIn ? (
-                <>
-                  <div className="px-3 py-2">
-                    <UserButton />
-                  </div>
-                </>
-              ) : (
-                <div className="px-3 py-2">
-                  <SignInButton mode="modal">
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors w-full">
-                      Sign In
-                    </button>
-                  </SignInButton>
-                </div>
-              )}
-            </nav>
-          </div>
-        )}
       </div>
     </header>
   );

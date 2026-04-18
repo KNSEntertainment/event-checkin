@@ -26,6 +26,8 @@ interface Registration {
   checked_in_at?: string;
   lunch_served: boolean;
   lunch_served_at?: string;
+  adults_lunch_served: number;
+  children_lunch_served: number;
   created_at: string;
 }
 
@@ -251,9 +253,17 @@ export default function EventPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold text-gray-900">Registrations</h2>
-            <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-              {registrations.length} total
-            </span>
+            <div className="flex flex-col sm:flex-row gap-2 text-sm text-gray-600">
+              <span className="bg-gray-100 px-3 py-1 rounded-full">
+                {registrations.length} groups
+              </span>
+              <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
+                {totalCounts.total_adults} adults
+              </span>
+              <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
+                {totalCounts.total_children} children
+              </span>
+            </div>
           </div>
 
           {registrations.length === 0 ? (
@@ -284,7 +294,7 @@ export default function EventPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col md:flex-row gap-2">
                       <div className="flex items-center gap-3 text-sm">
                         <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded font-medium">
                           {registration.adults_count} {registration.adults_count === 1 ? 'Adult' : 'Adults'}
@@ -305,11 +315,14 @@ export default function EventPage() {
                         </span>
                         {registration.checked_in && (
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            registration.lunch_served 
+                            registration.adults_lunch_served > 0 || registration.children_lunch_served > 0
                               ? 'bg-orange-100 text-orange-800' 
                               : 'bg-red-100 text-red-800'
                           }`}>
-                            {registration.lunch_served ? 'Lunch Served' : 'Lunch Pending'}
+                            {registration.adults_lunch_served + registration.children_lunch_served > 0 
+                              ? `${registration.adults_lunch_served + registration.children_lunch_served} of ${registration.adults_count + registration.children_count} lunch served`
+                              : 'Lunch Pending'
+                            }
                           </span>
                         )}
                       </div>

@@ -58,6 +58,7 @@ export default function LunchVerificationPage() {
   
   // Phone search state
   const [searchQuery, setSearchQuery] = useState('');
+  const [allRegistrations, setAllRegistrations] = useState<Registration[]>([]);
   const [searchResults, setSearchResults] = useState<Registration[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -86,19 +87,23 @@ export default function LunchVerificationPage() {
 
   const fetchEventData = async () => {
     try {
-      const [eventRes, statsRes] = await Promise.all([
+      const [eventRes, statsRes, registrationsRes] = await Promise.all([
         fetch(`/api/events/${eventId}`),
-        fetch(`/api/events/${eventId}/stats`)
+        fetch(`/api/events/${eventId}/stats`),
+        fetch(`/api/events/${eventId}/registrations`)
       ]);
 
-      if (eventRes.ok && statsRes.ok) {
-        const [eventData, statsData] = await Promise.all([
+      if (eventRes.ok && statsRes.ok && registrationsRes.ok) {
+        const [eventData, statsData, registrationsData] = await Promise.all([
           eventRes.json(),
-          statsRes.json()
+          statsRes.json(),
+          registrationsRes.json()
         ]);
 
         setEvent(eventData.event);
         setStats(statsData.stats);
+        setAllRegistrations(registrationsData.registrations);
+        setSearchResults(registrationsData.registrations);
       } else {
         setError('Failed to load event data');
       }
@@ -176,21 +181,18 @@ export default function LunchVerificationPage() {
     }
   };
 
-  const handleSearch = async () => {
+  const handleSearch = () => {
     if (!searchQuery.trim()) {
-      setSearchResults([]);
+      setSearchResults(allRegistrations);
       return;
     }
 
     setSearchLoading(true);
     try {
-      const response = await fetch(`/api/events/${eventId}/search?phone=${encodeURIComponent(searchQuery)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSearchResults(data.registrations);
-      } else {
-        setError('Search failed');
-      }
+      const filtered = allRegistrations.filter(reg => 
+        reg.phone.includes(searchQuery)
+      );
+      setSearchResults(filtered);
     } catch (err) {
       setError('Search error occurred');
     } finally {
@@ -209,21 +211,28 @@ export default function LunchVerificationPage() {
       searchTimeoutRef.current = null;
     }
     
-    // Only search if we have at least 3 digits (reasonable phone number length)
+    // Filter all registrations based on phone number
     if (value.length >= 3) {
       setSearchLoading(true);
       searchTimeoutRef.current = setTimeout(() => {
-        handleSearch();
+        const filtered = allRegistrations.filter(reg => 
+          reg.phone.includes(value)
+        );
+        setSearchResults(filtered);
+        setSearchLoading(false);
       }, 500); // 500ms delay for debouncing
     } else {
-      // Clear results if phone is too short
-      setSearchResults([]);
+      // Show all registrations if search is too short
+      setSearchResults(allRegistrations);
       setSearchLoading(false);
     }
   };
 
-  const handleServeLunch = async (registration: Registration) => {
-    if (lunchSelection.adults === 0 && lunchSelection.children === 0) {
+  const handleServeLunch = async (registration: Registration, adults: number = 0, children: number = 0) => {
+    const adultsToServe = adults > 0 ? adults : lunchSelection.adults;
+    const childrenToServe = children > 0 ? children : lunchSelection.children;
+    
+    if (adultsToServe === 0 && childrenToServe === 0) {
       setError('Please select at least one person to serve lunch');
       return;
     }
@@ -239,8 +248,8 @@ export default function LunchVerificationPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          adults_lunch_served: lunchSelection.adults,
-          children_lunch_served: lunchSelection.children
+          adults_lunch_served: adultsToServe,
+          children_lunch_served: childrenToServe
         }),
       });
 
@@ -249,12 +258,12 @@ export default function LunchVerificationPage() {
         setSelectedRegistration(result.registration);
         setSuccess('Lunch served successfully!');
         
-        // Update stats
+        // Update stats with the actual served counts
         setStats(prev => ({
           ...prev,
-          total_lunch_served: prev.total_lunch_served + 1,
-          lunchAdults: prev.lunchAdults + lunchSelection.adults,
-          lunchChildren: prev.lunchChildren + lunchSelection.children
+          total_lunch_served: prev.total_lunch_served + (adultsToServe + childrenToServe),
+          lunchAdults: prev.lunchAdults + adultsToServe,
+          lunchChildren: prev.lunchChildren + childrenToServe
         }));
 
         // Update search results if applicable
@@ -262,8 +271,22 @@ export default function LunchVerificationPage() {
           prev.map(r => r.id === registration.id ? result.registration : r)
         );
 
+        // Update all registrations to keep in sync
+        setAllRegistrations(prev => 
+          prev.map(r => r.id === registration.id ? result.registration : r)
+        );
+
         // Reset selection
         setLunchSelection({ adults: 0, children: 0 });
+        
+        // Clear input fields
+        const adultsInput = document.getElementById(`adults-${registration.id}`) as HTMLInputElement;
+        const childrenInput = document.getElementById(`children-${registration.id}`) as HTMLInputElement;
+        const totalSpan = document.getElementById(`total-${registration.id}`) as HTMLSpanElement;
+        if (adultsInput) adultsInput.value = '0';
+        if (childrenInput) childrenInput.value = '0';
+        if (totalSpan) totalSpan.textContent = '0';
+        
         setTimeout(() => setSuccess(''), 3000);
       } else {
         const errorData = await response.json();
@@ -308,50 +331,43 @@ export default function LunchVerificationPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
+            <button
+              onClick={() => router.push(`/event/${eventId}`)}
+              className="px-4 mb-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              Back to Event
+            </button>
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Lunch Verification</h1>
               <p className="mt-1 text-lg text-blue-600">{event?.name}</p>
             </div>
-            <button
-              onClick={() => router.push(`/event/${eventId}`)}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-            >
-              Back to Event
-            </button>
           </div>
         </div>
 
         {/* Lunch Stats */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4">Lunch Service Statistics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl sm:text-3xl font-bold text-green-600">{stats.total_checked_in}</div>
-              <div className="text-xs text-gray-600 mt-1">Checked In</div>
+              <div className="text-xs text-gray-600 mt-1">Checked In Families</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-orange-600">{stats.total_lunch_served}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-orange-600">{stats.lunchAdults + stats.lunchChildren} of {stats.adults + stats.children}</div>
               <div className="text-xs text-gray-600 mt-1">Lunch Served</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-purple-600">{stats.lunchAdults}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-purple-600">{stats.lunchAdults}/{stats.adults}</div>
               <div className="text-xs text-gray-600 mt-1">Adults Served</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-pink-600">{stats.lunchChildren}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-pink-600">{stats.lunchChildren}/{stats.children}</div>
               <div className="text-xs text-gray-600 mt-1">Children Served</div>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="flex justify-center">
-              <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600">{stats.total_checked_in - stats.total_lunch_served}</div>
-                <div className="text-xs text-gray-600 mt-1">Remaining</div>
-              </div>
-            </div>
-          </div>
+   
         </div>
 
         {/* Lunch Verification Methods */}
@@ -377,9 +393,7 @@ export default function LunchVerificationPage() {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Type at least 3 digits to automatically search
-              </p>
+            
             </div>
 
             {/* QR Scanner */}
@@ -416,54 +430,99 @@ export default function LunchVerificationPage() {
         {searchResults.length > 0 && (
           <div className="bg-white shadow rounded-lg p-6 mb-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Search Results</h3>
-            <div className="space-y-3">
+            <div className="space-y-3 grid grid-cols-1 md:grid-cols-2 gap-4">
               {searchResults.map((registration) => (
                 <div key={registration.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900">{registration.name}</p>
+                      <p className="font-medium text-gray-900">{registration.name} ({registration.adults_count}A , {registration.children_count}C)</p>
                       <p className="text-sm text-gray-600">{registration.phone}</p>
-                      <div className="mt-2 text-sm text-gray-600">
-                        <span>Adults: {registration.adults_count}</span>
-                        {registration.adults_lunch_served > 0 && (
-                          <span className="ml-2 text-orange-600">({registration.adults_lunch_served} served)</span>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        <span>Children: {registration.children_count}</span>
-                        {registration.children_lunch_served > 0 && (
-                          <span className="ml-2 text-orange-600">({registration.children_lunch_served} served)</span>
-                        )}
-                      </div>
+                   
                     </div>
                     <div className="flex flex-col items-end space-y-2">
                       <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                          registration.checked_in 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {registration.checked_in ? 'Checked In' : 'Not Checked In'}
-                        </span>
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        <span className={`px-4 py-2 text-md font-semibold rounded-full ${
                           registration.lunch_served 
                             ? 'bg-orange-100 text-orange-800' 
                             : 'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {registration.lunch_served ? 'Lunch Served' : 'Lunch Pending'}
+                          {registration.lunch_served ? `${stats.lunchAdults + stats.lunchChildren} of ${stats.adults + stats.children} served` : 'Lunch Pending'}
                         </span>
                       </div>
-                      {registration.checked_in && (
-                        <button
-                          onClick={() => handleRegistrationSelect(registration)}
-                          disabled={servingLunch}
-                          className="px-3 py-1 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 text-sm"
-                        >
-                          Select for Lunch
-                        </button>
-                      )}
+                    </div>
+                         {/* Lunch Selection Interface */}
+                  </div>
+              {registration.checked_in && (
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="text-md font-medium text-gray-900 mb-3">Select No. of People to Serve Lunch</h4>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Adults ({registration.adults_count - registration.adults_lunch_served} available)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={registration.adults_count - registration.adults_lunch_served}
+                        defaultValue="0"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                        id={`adults-${registration.id}`}
+                        onChange={() => {
+                          const adultsInput = document.getElementById(`adults-${registration.id}`) as HTMLInputElement;
+                          const childrenInput = document.getElementById(`children-${registration.id}`) as HTMLInputElement;
+                          const totalSpan = document.getElementById(`total-${registration.id}`) as HTMLSpanElement;
+                          const adults = parseInt(adultsInput.value) || 0;
+                          const children = parseInt(childrenInput.value) || 0;
+                          totalSpan.textContent = (adults + children).toString();
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Children ({registration.children_count - registration.children_lunch_served} available)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={registration.children_count - registration.children_lunch_served}
+                        defaultValue="0"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                        id={`children-${registration.id}`}
+                        onChange={() => {
+                          const adultsInput = document.getElementById(`adults-${registration.id}`) as HTMLInputElement;
+                          const childrenInput = document.getElementById(`children-${registration.id}`) as HTMLInputElement;
+                          const totalSpan = document.getElementById(`total-${registration.id}`) as HTMLSpanElement;
+                          const adults = parseInt(adultsInput.value) || 0;
+                          const children = parseInt(childrenInput.value) || 0;
+                          totalSpan.textContent = (adults + children).toString();
+                        }}
+                      />
                     </div>
                   </div>
+                  <div className="flex items-center space-x-3 text-sm text-gray-600 mb-4">
+                    <span>Total selected: <span id={`total-${registration.id}`}>0</span> people</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const adultsInput = document.getElementById(`adults-${registration.id}`) as HTMLInputElement;
+                      const childrenInput = document.getElementById(`children-${registration.id}`) as HTMLInputElement;
+                      const adults = parseInt(adultsInput.value) || 0;
+                      const children = parseInt(childrenInput.value) || 0;
+                      
+                      if (adults === 0 && children === 0) {
+                        setError('Please select at least one person to serve lunch');
+                        return;
+                      }
+                      
+                      handleServeLunch(registration, adults, children);
+                    }}
+                    disabled={servingLunch || (registration.adults_lunch_served >= registration.adults_count && registration.children_lunch_served >= registration.children_count)}
+                    className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 text-lg font-medium"
+                  >
+                    {servingLunch ? 'Serving...' : (registration.adults_lunch_served >= registration.adults_count && registration.children_lunch_served >= registration.children_count) ? 'All Served' : 'Serve Lunch'}
+                  </button>
+                </div>
+              )}
                 </div>
               ))}
             </div>
@@ -471,7 +530,7 @@ export default function LunchVerificationPage() {
         )}
 
         {/* Selected Registration */}
-        {selectedRegistration && (
+        {/* {selectedRegistration && (
           <div className="bg-white shadow rounded-lg p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Registration Details</h3>
             <div className="space-y-4">
@@ -482,13 +541,13 @@ export default function LunchVerificationPage() {
                   <div className="text-sm text-gray-600">
                     Adults: {selectedRegistration.adults_count}
                     {selectedRegistration.adults_lunch_served > 0 && (
-                      <span className="ml-2 text-orange-600">({selectedRegistration.adults_lunch_served} already served)</span>
+                      <span className="ml-2 text-orange-600">({selectedRegistration.adults_lunch_served}/{selectedRegistration.adults_count} already served)</span>
                     )}
                   </div>
                   <div className="text-sm text-gray-600">
                     Children: {selectedRegistration.children_count}
                     {selectedRegistration.children_lunch_served > 0 && (
-                      <span className="ml-2 text-orange-600">({selectedRegistration.children_lunch_served} already served)</span>
+                      <span className="ml-2 text-orange-600">({selectedRegistration.children_lunch_served}/{selectedRegistration.children_count} already served)</span>
                     )}
                   </div>
                 </div>
@@ -505,7 +564,7 @@ export default function LunchVerificationPage() {
               </div>
 
               {/* Lunch Selection Interface */}
-              {selectedRegistration.checked_in && (
+              {/* {selectedRegistration.checked_in && (
                 <div className="border-t pt-4">
                   <h4 className="text-md font-medium text-gray-900 mb-3">Select People to Serve Lunch</h4>
                   <div className="grid grid-cols-2 gap-4 mb-4">
@@ -541,9 +600,9 @@ export default function LunchVerificationPage() {
                   </div>
                 </div>
               )}
-            </div>
+            </div> */}
             
-            <div className="flex items-center space-x-3 mt-4">
+            {/* <div className="flex items-center space-x-3 mt-4">
               <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
                 selectedRegistration.checked_in 
                   ? 'bg-green-100 text-green-800' 
@@ -569,7 +628,7 @@ export default function LunchVerificationPage() {
               )}
             </div>
           </div>
-        )}
+        )} */} 
 
         {/* Success Message */}
         {success && (

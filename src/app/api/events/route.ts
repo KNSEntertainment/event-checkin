@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { initDB, createEvent, createOrganizer, getOrganizerByClerkId } from '@/lib/database-vercel';
+import { connectDB, createEvent, getEventsByClerkId, createOrganizer, getOrganizerByClerkId } from '@/lib/database-mongodb';
+import { randomUUID } from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,16 +23,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = initDB();
+    // Connect to MongoDB
+    await connectDB();
     
     // Get or create organizer
-    let organizer = await getOrganizerByClerkId(db, userId);
+    let organizer = await getOrganizerByClerkId({}, userId);
     if (!organizer) {
-      organizer = await createOrganizer(db, userId, organizerEmail);
+      organizer = await createOrganizer({}, userId, organizerEmail);
     }
 
     // Create event
-    const event = await createEvent(db, {
+    const event = await createEvent({}, {
+      id: randomUUID(),
       name,
       date,
       start_time,

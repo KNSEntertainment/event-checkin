@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initDB, getRegistrationById, updateRegistrationLunch } from '@/lib/database-vercel';
+import { connectDB, getRegistrationById, updateRegistrationLunch } from '@/lib/database-mongodb';
 
 export async function POST(
   request: NextRequest,
@@ -24,10 +24,11 @@ export async function POST(
       );
     }
 
-    const db = initDB();
+    // Connect to MongoDB
+    await connectDB();
     
     // Get registration
-    const registration = await getRegistrationById(db, registrationId);
+    const registration = await getRegistrationById({}, registrationId);
     if (!registration) {
       return NextResponse.json(
         { error: 'Registration not found' },
@@ -64,9 +65,9 @@ export async function POST(
         );
       }
 
-      const updatedRegistration = await updateRegistrationLunch(db, registrationId, {
+      const updatedRegistration = await updateRegistrationLunch({}, registrationId, {
         lunch_served: true,
-        lunch_served_at: new Date().toISOString(),
+        lunch_served_at: new Date(),
         adults_lunch_served: registration.adults_lunch_served + newAdultsLunch,
         children_lunch_served: registration.children_lunch_served + newChildrenLunch
       });
@@ -75,9 +76,9 @@ export async function POST(
     }
 
     // First time serving lunch
-    const updatedRegistration = await updateRegistrationLunch(db, registrationId, {
+    const updatedRegistration = await updateRegistrationLunch({}, registrationId, {
       lunch_served: true,
-      lunch_served_at: new Date().toISOString(),
+      lunch_served_at: new Date(),
       adults_lunch_served,
       children_lunch_served
     });

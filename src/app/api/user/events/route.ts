@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { initDB, getEventsByClerkId } from '@/lib/database-vercel';
+import { connectDB, getEventsByOrganizer } from '@/lib/database-mongodb';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,8 +13,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const db = initDB();
-    const events = await getEventsByClerkId(db, userId);
+    // Connect to MongoDB
+    await connectDB();
+    const events = await getEventsByOrganizer({}, userId);
 
     return NextResponse.json({ events });
   } catch (error) {

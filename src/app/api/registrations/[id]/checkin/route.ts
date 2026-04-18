@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initDB, checkInRegistration, getRegistrationById } from '@/lib/database-vercel';
+import { connectDB, updateRegistration, getRegistrationById } from '@/lib/database-mongodb';
 
 export async function POST(
   request: NextRequest,
@@ -16,10 +16,11 @@ export async function POST(
       );
     }
 
-    const db = initDB();
+    // Connect to MongoDB
+    await connectDB();
     
     // Check if registration exists and is not already checked in
-    const existingRegistration = await getRegistrationById(db, registrationId);
+    const existingRegistration = await getRegistrationById({}, registrationId);
     if (!existingRegistration) {
       return NextResponse.json(
         { error: 'Registration not found' },
@@ -35,9 +36,9 @@ export async function POST(
     }
 
     // Check in Registration
-    const registration = await checkInRegistration(db, registrationId, {
-      adults_count: adults_count,
-      children_count: children_count
+    const registration = await updateRegistration({}, registrationId, {
+      checked_in: true,
+      checked_in_at: new Date()
     });
 
     return NextResponse.json({ registration });
