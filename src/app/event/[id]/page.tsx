@@ -94,9 +94,13 @@ export default function EventPage() {
     }
   };
 
-  const registrationURL = typeof window !== 'undefined' 
-    ? `${window.location.origin}/register/${eventId}`
-    : '';
+  const [registrationURL, setRegistrationURL] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setRegistrationURL(`${window.location.origin}/register/${eventId}`);
+    }
+  }, [eventId]);
 
   if (loading) {
     return (

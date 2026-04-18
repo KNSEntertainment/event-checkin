@@ -138,9 +138,7 @@ export default function DashboardPage() {
                     <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                     <span className="ml-2 text-sm text-gray-600">{events.length} Active Events</span>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    Welcome back, {user?.firstName || 'User'}
-                  </div>
+             
                 </div>
               </div>
               <div className="flex space-x-3">
