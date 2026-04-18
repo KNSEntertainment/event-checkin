@@ -86,10 +86,11 @@ export const getEventStats = async (db: any, event_id: string) => {
 };
 
 // Organizer operations
-export const createOrganizer = async (db: any, email: string) => {
+export const createOrganizer = async (db: any, clerkUserId: string, email: string) => {
   const id = uuidv4();
   const organizer = { 
     id, 
+    clerk_user_id: clerkUserId,
     email, 
     created_at: new Date().toISOString() 
   };
@@ -97,6 +98,6 @@ export const createOrganizer = async (db: any, email: string) => {
   return organizer;
 };
 
-export const getOrganizerByEmail = async (db: any, email: string) => {
-  return organizers.find(org => org.email === email);
+export const getOrganizerByClerkId = async (db: any, clerkUserId: string) => {
+  return organizers.find(org => org.clerk_user_id === clerkUserId);
 };

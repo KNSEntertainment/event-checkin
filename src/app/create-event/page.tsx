@@ -2,17 +2,24 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 
 export default function CreateEventPage() {
+  const { isSignedIn, user } = useUser();
   const [formData, setFormData] = useState({
     name: '',
     date: '',
-    organizerEmail: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const router = useRouter();
+
+  // Redirect if not signed in
+  if (!isSignedIn) {
+    router.push('/sign-in');
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +33,10 @@ export default function CreateEventPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          organizerEmail: user?.primaryEmailAddress?.emailAddress
+        }),
       });
 
       if (response.ok) {
@@ -90,21 +100,6 @@ export default function CreateEventPage() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="organizerEmail" className="block text-sm font-medium text-gray-700">
-                  Your Email
-                </label>
-                <input
-                  id="organizerEmail"
-                  name="organizerEmail"
-                  type="email"
-                  required
-                  value={formData.organizerEmail}
-                  onChange={(e) => setFormData({ ...formData, organizerEmail: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  placeholder="organizer@example.com"
-                />
-              </div>
 
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">

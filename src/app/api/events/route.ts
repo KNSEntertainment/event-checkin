@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initDB, createEvent, createOrganizer, getOrganizerByEmail } from '@/lib/database-vercel';
+import { auth } from '@clerk/nextjs/server';
+import { initDB, createEvent, createOrganizer, getOrganizerByClerkId } from '@/lib/database-vercel';
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { name, date, organizerEmail } = await request.json();
 
     if (!name || !date || !organizerEmail) {
@@ -15,9 +25,9 @@ export async function POST(request: NextRequest) {
     const db = initDB();
     
     // Get or create organizer
-    let organizer = await getOrganizerByEmail(db, organizerEmail);
+    let organizer = await getOrganizerByClerkId(db, userId);
     if (!organizer) {
-      organizer = await createOrganizer(db, organizerEmail);
+      organizer = await createOrganizer(db, userId, organizerEmail);
     }
 
     // Create event
