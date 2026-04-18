@@ -113,8 +113,13 @@ export default function CreateEventPage() {
   };
 
   // Redirect if not signed in
+  useEffect(() => {
+    if (!isSignedIn) {
+      router.push('/sign-in');
+    }
+  }, [isSignedIn, router]);
+
   if (!isSignedIn) {
-    router.push('/sign-in');
     return null;
   }
 

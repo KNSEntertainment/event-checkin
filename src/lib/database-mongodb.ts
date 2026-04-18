@@ -85,7 +85,7 @@ export const getEventById = async (db: any, eventId: string) => {
   return event ? event.toObject() : null;
 };
 
-export const getEventsByOrganizer = async (db: any, organizerId: string) => {
+export const getEventsByOrganizer = async (organizerId: string) => {
   const events = await Event.find({ organizer_id: organizerId }).sort({ created_at: -1 });
   return events.map(event => event.toObject());
 };

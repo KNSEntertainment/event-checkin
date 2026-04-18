@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       venue,
       address,
       parking_info,
-      organizer_id: organizer.id
+      organizer_id: userId
     });
 
 

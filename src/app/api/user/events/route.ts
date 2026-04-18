@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     // Connect to MongoDB
     await connectDB();
-    const events = await getEventsByOrganizer({}, userId);
+    const events = await getEventsByOrganizer(userId);
 
     return NextResponse.json({ events });
   } catch (error) {
