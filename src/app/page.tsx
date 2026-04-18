@@ -1,24 +1,33 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useUser, SignInButton, UserButton } from '@clerk/nextjs';
+import { useEffect } from 'react';
 
 export default function Home() {
   const { isSignedIn, user } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isSignedIn) {
+      router.push('/dashboard');
+    }
+  }, [isSignedIn, router]);
+
+  // Show loading state while checking authentication
+  if (isSignedIn === undefined) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="relative overflow-hidden">
         <div className="relative max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8">
-          {isSignedIn && (
-            <div className="absolute top-0 right-0">
-              <div className="flex items-center space-x-4 bg-white rounded-lg shadow p-2">
-                <span className="text-sm text-gray-600">
-                  {user?.primaryEmailAddress?.emailAddress}
-                </span>
-                <UserButton />
-              </div>
-            </div>
-          )}
           <div className="text-center">
             <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
               Event Check-in
@@ -28,13 +37,21 @@ export default function Home() {
               Create events, collect registrations, and check in attendees with QR codes or phone search. 
               Perfect for conferences, meetings, and gatherings.
             </p>
-            <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
+            <div className="mt-5 max-w-3xl mx-auto sm:flex sm:justify-center md:mt-8">
               {isSignedIn ? (
                 <>
                   <div className="rounded-md shadow">
                     <Link
-                      href="/create-event"
+                      href="/dashboard"
                       className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10"
+                    >
+                      My Events
+                    </Link>
+                  </div>
+                  <div className="mt-3 rounded-md shadow sm:mt-0 sm:ml-3">
+                    <Link
+                      href="/create-event"
+                      className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 md:py-4 md:text-lg md:px-10"
                     >
                       Create Event
                     </Link>

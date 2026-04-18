@@ -7,6 +7,7 @@ interface Registration {
   id: string;
   name: string;
   phone: string;
+  adults_count: number;
   children_count: number;
   checked_in: boolean;
   checked_in_at?: string;
@@ -23,6 +24,10 @@ export default function CheckinPage() {
   const [error, setError] = useState('');
   const [checkingIn, setCheckingIn] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [editCounts, setEditCounts] = useState({
+    adults_count: 0,
+    children_count: 0
+  });
 
   useEffect(() => {
     if (registrationId) {
@@ -36,6 +41,10 @@ export default function CheckinPage() {
       if (response.ok) {
         const data = await response.json();
         setRegistration(data.registration);
+        setEditCounts({
+          adults_count: data.registration.adults_count || 1,
+          children_count: data.registration.children_count || 0
+        });
       } else {
         setError('Registration not found');
       }
@@ -51,10 +60,18 @@ export default function CheckinPage() {
 
     setCheckingIn(true);
     setError('');
+    setSuccess(false);
 
     try {
       const response = await fetch(`/api/registrations/${registrationId}/checkin`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          adults_count: editCounts.adults_count,
+          children_count: editCounts.children_count
+        }),
       });
 
       if (response.ok) {
@@ -122,45 +139,67 @@ export default function CheckinPage() {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 {registration.name}
               </h2>
-
-              <div className="space-y-3 text-left">
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-gray-600">Phone:</span>
-                  <span className="font-medium">{registration.phone}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-gray-600">Children:</span>
-                  <span className="font-medium">{registration.children_count}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-gray-600">Status:</span>
-                  <span className={`font-medium ${
-                    registration.checked_in ? 'text-green-600' : 'text-yellow-600'
-                  }`}>
-                    {registration.checked_in ? 'Checked In' : 'Not Checked In'}
-                  </span>
-                </div>
-                {registration.checked_in_at && (
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-gray-600">Checked in at:</span>
-                    <span className="font-medium text-sm">
-                      {new Date(registration.checked_in_at).toLocaleString()}
-                    </span>
-                  </div>
-                )}
-              </div>
-
+              
+              {/* Editable counts when not checked in */}
               {!registration.checked_in && (
-                <button
-                  onClick={handleCheckIn}
-                  disabled={checkingIn}
-                  className="mt-6 w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {checkingIn ? 'Checking in...' : 'Check In'}
-                </button>
+                <div className="space-y-3 text-left">
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-gray-600">Adults:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={editCounts.adults_count}
+                      onChange={(e) => setEditCounts({ ...editCounts, adults_count: parseInt(e.target.value) || 1 })}
+                      className="w-24 border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                    />
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-gray-600">Children:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="20"
+                      value={editCounts.children_count}
+                      onChange={(e) => setEditCounts({ ...editCounts, children_count: parseInt(e.target.value) || 0 })}
+                      className="w-24 border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
               )}
-
+              
+              {/* Display counts when checked in */}
               {registration.checked_in && (
+                <div className="space-y-3 text-left">
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-gray-600">Adults:</span>
+                    <span className="font-medium">{registration.adults_count}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-gray-600">Children:</span>
+                    <span className="font-medium">{registration.children_count}</span>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-center space-x-3 mt-4">
+                <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
+                  registration.checked_in 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {registration.checked_in ? 'Checked In' : 'Not Checked In'}
+                </span>
+                {!registration.checked_in && (
+                  <button
+                    onClick={handleCheckIn}
+                    disabled={checkingIn}
+                    className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 text-lg font-medium"
+                  >
+                    {checkingIn ? 'Checking in...' : 'Check In'}
+                  </button>
+                )}
+              </div> {registration.checked_in && (
                 <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                   <p className="text-center text-gray-600">
                     This person has already been checked in

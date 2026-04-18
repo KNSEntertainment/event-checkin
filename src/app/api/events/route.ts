@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, date, organizerEmail } = await request.json();
+    const { name, date, start_time, end_time, venue, address, parking_info, organizerEmail } = await request.json();
 
     if (!name || !date || !organizerEmail) {
       return NextResponse.json(
@@ -34,6 +34,11 @@ export async function POST(request: NextRequest) {
     const event = await createEvent(db, {
       name,
       date,
+      start_time,
+      end_time,
+      venue,
+      address,
+      parking_info,
       organizer_id: organizer.id
     });
 

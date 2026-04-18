@@ -8,6 +8,11 @@ interface Event {
   id: string;
   name: string;
   date: string;
+  start_time?: string;
+  end_time?: string;
+  venue?: string;
+  address?: string;
+  parking_info?: string;
   organizer_id: string;
 }
 
@@ -15,14 +20,21 @@ interface Registration {
   id: string;
   name: string;
   phone: string;
+  adults_count: number;
   children_count: number;
   checked_in: boolean;
+  checked_in_at?: string;
+  lunch_served: boolean;
+  lunch_served_at?: string;
   created_at: string;
 }
 
 interface EventStats {
   total_registered: number;
   total_checked_in: number;
+  total_lunch_served: number;
+  lunchAdults: number;
+  lunchChildren: number;
 }
 
 export default function EventPage() {
@@ -32,7 +44,8 @@ export default function EventPage() {
 
   const [event, setEvent] = useState<Event | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [stats, setStats] = useState<EventStats>({ total_registered: 0, total_checked_in: 0 });
+  const [stats, setStats] = useState<EventStats>({ total_registered: 0, total_checked_in: 0, total_lunch_served: 0, lunchAdults: 0, lunchChildren: 0 });
+  const [totalCounts, setTotalCounts] = useState({ total_adults: 0, total_children: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -60,6 +73,15 @@ export default function EventPage() {
         setEvent(eventData.event);
         setRegistrations(registrationsData.registrations);
         setStats(statsData.stats);
+        
+        // Calculate total adults and children counts
+        const totalAdults = registrationsData.registrations.reduce((sum: number, reg: Registration) => sum + (reg.adults_count || 1), 0);
+        const totalChildren = registrationsData.registrations.reduce((sum: number, reg: Registration) => sum + (reg.children_count || 0), 0);
+        
+        setTotalCounts({
+          total_adults: totalAdults,
+          total_children: totalChildren
+        });
       } else {
         setError('Failed to load event data');
       }
@@ -103,118 +125,204 @@ export default function EventPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Event Header */}
-        <div className="bg-white shadow rounded-lg p-6 mb-8">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{event.name}</h1>
-              <p className="mt-2 text-gray-600">Date: {new Date(event.date).toLocaleDateString()}</p>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                {event.name}
+              </h1>
+              <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-600">
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {new Date(event.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                </div>
+                {event.start_time && (
+                  <div className="flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {event.start_time}{event.end_time ? ` - ${event.end_time}` : ''}
+                  </div>
+                )}
+                {event.venue && (
+                  <div className="flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    {event.venue}
+                  </div>
+                )}
+              </div>
+              {event.address && (
+                <div className="mt-2 text-sm text-gray-600 flex items-start">
+                  <svg className="w-4 h-4 mr-2 text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {event.address}
+                </div>
+              )}
+              {event.parking_info && (
+                <div className="mt-2 text-sm text-gray-600 flex items-start">
+                  <svg className="w-4 h-4 mr-2 text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">{event.parking_info}</span>
+                </div>
+              )}
             </div>
-            <button
-              onClick={() => router.push(`/checkin/${eventId}`)}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-            >
-              Open Check-in App
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <button
+                onClick={() => router.push(`/checkin/${eventId}`)}
+                className="flex-1 sm:flex-initial px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                Check-in
+              </button>
+              <button
+                onClick={() => router.push(`/lunch/${eventId}`)}
+                className="flex-1 sm:flex-initial px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-xl hover:from-orange-700 hover:to-orange-800 font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                Lunch Verification
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900">Total Registered</h3>
-            <p className="mt-2 text-3xl font-bold text-blue-600">{stats.total_registered}</p>
-          </div>
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900">Total Checked In</h3>
-            <p className="mt-2 text-3xl font-bold text-green-600">{stats.total_checked_in}</p>
+        {/* Compact Stats Bar */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
+            <div className="text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-blue-600">{stats.total_registered}</div>
+              <div className="text-xs text-gray-600 mt-1">Registered</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-green-600">{stats.total_checked_in}</div>
+              <div className="text-xs text-gray-600 mt-1">Checked In</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-orange-600">{stats.total_lunch_served}</div>
+              <div className="text-xs text-gray-600 mt-1">Lunch Served</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-purple-600">{stats.lunchAdults}</div>
+              <div className="text-xs text-gray-600 mt-1">Adults Lunch</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-pink-600">{stats.lunchChildren}</div>
+              <div className="text-xs text-gray-600 mt-1">Children Lunch</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-indigo-600">{totalCounts.total_adults + totalCounts.total_children}</div>
+              <div className="text-xs text-gray-600 mt-1">Total People</div>
+            </div>
           </div>
         </div>
 
-        {/* Registration QR Code */}
-        <div className="bg-white shadow rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Registration QR Code</h2>
-          <div className="flex items-center space-x-8">
-            <div className="bg-white p-4 rounded-lg">
-              <QRCode value={registrationURL} size={200} />
+        {/* Compact QR Code Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex flex-col lg:flex-row items-center gap-6">
+            <div className="bg-white p-4 rounded-xl shadow-md">
+              <QRCode value={registrationURL} size={180} />
             </div>
-            <div>
-              <p className="text-gray-600 mb-4">
+            <div className="flex-1 text-center lg:text-left">
+              <h2 className="text-lg font-bold text-gray-900 mb-2">Registration QR Code</h2>
+              <p className="text-sm text-gray-600 mb-4">
                 Share this QR code for people to register for your event.
               </p>
-              <div className="bg-gray-100 p-3 rounded">
-                <p className="text-sm text-gray-600 font-mono break-all">{registrationURL}</p>
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-600 font-mono break-all">{registrationURL}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Registrations List */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Registrations</h2>
-            <span className="text-sm text-gray-600">
+        {/* Compact Registrations List */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold text-gray-900">Registrations</h2>
+            <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
               {registrations.length} total
             </span>
           </div>
 
           {registrations.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">No registrations yet</p>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <p className="text-gray-500 font-medium">No registrations yet</p>
               <p className="text-sm text-gray-400 mt-2">Share the QR code to start collecting registrations</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Phone
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Children
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Registered
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {registrations.map((registration) => (
-                    <tr key={registration.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {registration.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {registration.phone}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {registration.children_count}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+            <div className="space-y-3">
+              {registrations.map((registration) => (
+                <div key={registration.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 font-semibold text-sm">
+                            {registration.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{registration.name}</p>
+                          <p className="text-sm text-gray-600">{registration.phone}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 text-sm">
+                        <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded font-medium">
+                          {registration.adults_count} {registration.adults_count === 1 ? 'Adult' : 'Adults'}
+                        </span>
+                        {registration.children_count > 0 && (
+                          <span className="bg-orange-50 text-orange-700 px-2 py-1 rounded font-medium">
+                            {registration.children_count} {registration.children_count === 1 ? 'Child' : 'Children'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           registration.checked_in 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {registration.checked_in ? 'Checked In' : 'Not Checked In'}
+                          {registration.checked_in ? 'Checked In' : 'Pending'}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(registration.created_at).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        {registration.checked_in && (
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            registration.lunch_served 
+                              ? 'bg-orange-100 text-orange-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {registration.lunch_served ? 'Lunch Served' : 'Lunch Pending'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
+                    <span>Registered: {new Date(registration.created_at).toLocaleDateString()}</span>
+                    {registration.checked_in_at && (
+                      <span>Checked in: {new Date(registration.checked_in_at).toLocaleString()}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

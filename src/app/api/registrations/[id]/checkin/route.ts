@@ -7,6 +7,7 @@ export async function POST(
 ) {
   try {
     const { id: registrationId } = await params;
+    const { adults_count, children_count } = await request.json();
     
     if (!registrationId) {
       return NextResponse.json(
@@ -33,8 +34,11 @@ export async function POST(
       );
     }
 
-    // Check in the registration
-    const registration = await checkInRegistration(db, registrationId);
+    // Check in Registration
+    const registration = await checkInRegistration(db, registrationId, {
+      adults_count: adults_count,
+      children_count: children_count
+    });
 
     return NextResponse.json({ registration });
   } catch (error) {

@@ -1,43 +1,199 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import QRCode from 'react-qr-code';
 
 interface Event {
   id: string;
   name: string;
   date: string;
+  start_time?: string;
+  end_time?: string;
+  venue?: string;
+  address?: string;
+  parking_info?: string;
+  organizer_id: string;
 }
 
 interface RegistrationData {
   name: string;
   phone: string;
+  address: string;
+  adults_count: number;
   children_count: number;
+}
+
+interface AddressSuggestion {
+  id: string;
+  label: string;       // full formatted address shown in dropdown
+  addressLine: string; // street + housenumber
+  city: string;
+  postalCode: string;
+}
+
+interface GeoapifyProperties {
+  place_id?: string | number;
+  formatted?: string;
+  street?: string;
+  housenumber?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  municipality?: string;
+  county?: string;
+  postcode?: string;
+}
+
+interface GeoapifyFeature {
+  id?: string | number;
+  properties?: GeoapifyProperties;
+}
+
+interface GeoapifyResponse {
+  features?: GeoapifyFeature[];
 }
 
 export default function RegisterPage() {
   const params = useParams();
-  const router = useRouter();
   const eventId = params.id as string;
 
   const [event, setEvent] = useState<Event | null>(null);
   const [formData, setFormData] = useState<RegistrationData>({
     name: '',
     phone: '',
-    children_count: 0
+    address: '',
+    adults_count: 1,
+    children_count: 0,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [registrationId, setRegistrationId] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  // Address autocomplete state
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [addressError, setAddressError] = useState('');
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const [isAddressSelected, setIsAddressSelected] = useState(false);
+
+  const geoapifyKey = process.env.NEXT_PUBLIC_GEOAPIFY_KEY;
 
   useEffect(() => {
-    if (eventId) {
-      fetchEvent();
-    }
+    if (eventId) fetchEvent();
   }, [eventId]);
+
+  // Geoapify autocomplete — debounced with AbortController, mirrors the reference implementation
+  useEffect(() => {
+    if (!geoapifyKey) {
+      setAddressSuggestions([]);
+      return;
+    }
+    if (!formData.address || formData.address.trim().length < 3) {
+      setAddressSuggestions([]);
+      return;
+    }
+    if (isAddressSelected) {
+      setIsAddressSelected(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const timer = setTimeout(async () => {
+      try {
+        setAddressLoading(true);
+        setAddressError('');
+
+        const text = encodeURIComponent(formData.address.trim());
+        const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${text}&limit=6&type=street&apiKey=${geoapifyKey}`;
+
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) throw new Error('Failed to fetch address suggestions');
+
+        const data = (await res.json()) as GeoapifyResponse;
+
+        const suggestions: AddressSuggestion[] = (data.features || []).map(
+          (feature: GeoapifyFeature) => {
+            const props = feature.properties || {};
+            const addressLine =
+              [props.street, props.housenumber].filter(Boolean).join(' ').trim() ||
+              props.formatted ||
+              '';
+            const city =
+              props.city ||
+              props.town ||
+              props.village ||
+              props.municipality ||
+              props.county ||
+              '';
+            const postalCode = props.postcode || '';
+
+            return {
+              id:
+                props.place_id?.toString() ||
+                feature?.id?.toString() ||
+                `${addressLine}-${postalCode}`,
+              label: props.formatted || addressLine || 'Unknown address',
+              addressLine: addressLine || props.formatted || '',
+              city,
+              postalCode,
+            };
+          }
+        );
+
+        setAddressSuggestions(suggestions);
+        setActiveSuggestionIndex(suggestions.length > 0 ? 0 : -1);
+      } catch (err: unknown) {
+        if (!(err instanceof Error) || err.name !== 'AbortError') {
+          setAddressError('Could not load address suggestions.');
+        }
+      } finally {
+        setAddressLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [formData.address, geoapifyKey]);
+
+  // Selecting a suggestion fills the single address field with the full formatted label
+  const applySuggestion = (item: AddressSuggestion) => {
+    setFormData(prev => ({ ...prev, address: item.label }));
+    setAddressSuggestions([]);
+    setActiveSuggestionIndex(-1);
+    setIsAddressSelected(true);
+  };
+
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, address: e.target.value }));
+    setAddressError('');
+    setActiveSuggestionIndex(-1);
+  };
+
+  const handleAddressKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (addressSuggestions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestionIndex(prev => (prev + 1) % addressSuggestions.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestionIndex(
+        prev => (prev - 1 + addressSuggestions.length) % addressSuggestions.length
+      );
+    } else if (e.key === 'Enter' && activeSuggestionIndex >= 0) {
+      e.preventDefault();
+      applySuggestion(addressSuggestions[activeSuggestionIndex]);
+    } else if (e.key === 'Escape') {
+      setAddressSuggestions([]);
+      setActiveSuggestionIndex(-1);
+    }
+  };
 
   const fetchEvent = async () => {
     try {
@@ -48,10 +204,10 @@ export default function RegisterPage() {
       } else {
         setError('Event not found');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to load event information');
     } finally {
-      setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -63,9 +219,7 @@ export default function RegisterPage() {
     try {
       const response = await fetch(`/api/events/${eventId}/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
@@ -77,18 +231,18 @@ export default function RegisterPage() {
         const errorData = await response.json();
         setError(errorData.error || 'Failed to register');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (loading) {
+  if (pageLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
           <p className="mt-4 text-gray-600">Loading event...</p>
         </div>
       </div>
@@ -107,9 +261,10 @@ export default function RegisterPage() {
   }
 
   if (success && registrationId) {
-    const checkinURL = typeof window !== 'undefined' 
-      ? `${window.location.origin}/checkin-individual/${registrationId}`
-      : '';
+    const checkinURL =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/checkin-individual/${registrationId}`
+        : '';
 
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -117,7 +272,7 @@ export default function RegisterPage() {
           <div className="text-center mb-8">
             <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
               <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <h1 className="text-3xl font-bold text-gray-900">Registration Successful!</h1>
@@ -140,9 +295,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
-              Save this QR code or take a screenshot for easy access
-            </p>
+            <p className="text-sm text-gray-500">Save this QR code or take a screenshot for easy access</p>
           </div>
         </div>
       </div>
@@ -153,7 +306,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Event Registration</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Register for the Event</h1>
           {event && (
             <>
               <p className="mt-2 text-lg font-medium text-blue-600">{event.name}</p>
@@ -162,7 +315,7 @@ export default function RegisterPage() {
                   weekday: 'long',
                   year: 'numeric',
                   month: 'long',
-                  day: 'numeric'
+                  day: 'numeric',
                 })}
               </p>
             </>
@@ -171,6 +324,8 @@ export default function RegisterPage() {
 
         <div className="bg-white shadow rounded-lg p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
+
+            {/* Full Name */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                 Full Name *
@@ -181,12 +336,13 @@ export default function RegisterPage() {
                 type="text"
                 required
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                placeholder="John Doe"
+                placeholder="Ram Bahadur Lama"
               />
             </div>
 
+            {/* Phone */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                 Phone Number *
@@ -195,17 +351,105 @@ export default function RegisterPage() {
                 id="phone"
                 name="phone"
                 type="tel"
+                minLength={8}
+                maxLength={8}
                 required
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                placeholder="+1 (555) 123-4567"
+                placeholder="46565456"
               />
+            </div>
+
+            {/* Address — single field, Geoapify autocomplete */}
+            <div>
+              <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                Address *
+              </label>
+              <div className="relative mt-1">
+                <input
+                  id="address"
+                  name="address"
+                  type="text"
+                  required
+                  autoComplete="off"
+                  value={formData.address}
+                  onChange={handleAddressChange}
+                  onKeyDown={handleAddressKeyDown}
+                  className="block w-full border border-gray-300 rounded-md px-3 py-2 pr-8 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                  placeholder="Start typing your street address..."
+                />
+
+                {addressLoading && (
+                  <div className="absolute right-2 top-2.5 pointer-events-none">
+                    <svg
+                      className="animate-spin h-4 w-4 text-gray-400"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                  </div>
+                )}
+
+                {addressError && (
+                  <p className="text-xs text-red-600 mt-1">{addressError}</p>
+                )}
+
+                {addressSuggestions.length > 0 && (
+                  <ul className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                    {addressSuggestions.map((item, index) => (
+                      <li
+                        key={item.id}
+                        className={`px-3 py-2 text-sm cursor-pointer ${
+                          index === activeSuggestionIndex
+                            ? 'bg-blue-50 text-gray-900'
+                            : 'text-gray-900 hover:bg-gray-50'
+                        }`}
+                        onMouseDown={e => {
+                          e.preventDefault(); // keep input focused until selection commits
+                          applySuggestion(item);
+                        }}
+                      >
+                        <div className="font-medium truncate">{item.label}</div>
+                        {(item.postalCode || item.city) && (
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {[item.postalCode, item.city].filter(Boolean).join(' ')}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <p className="mt-1 text-xs text-gray-500">
-                Used for check-in - keep this handy!
+                Type your full street address including postal code
               </p>
             </div>
 
+            {/* Adults */}
+            <div>
+              <label htmlFor="adults_count" className="block text-sm font-medium text-gray-700">
+                Number of Adults *
+              </label>
+              <input
+                id="adults_count"
+                name="adults_count"
+                type="number"
+                min="1"
+                max="20"
+                required
+                value={formData.adults_count}
+                onChange={e =>
+                  setFormData(prev => ({ ...prev, adults_count: parseInt(e.target.value) || 1 }))
+                }
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+              />
+            </div>
+
+            {/* Children */}
             <div>
               <label htmlFor="children_count" className="block text-sm font-medium text-gray-700">
                 Number of Children
@@ -217,13 +461,18 @@ export default function RegisterPage() {
                 min="0"
                 max="20"
                 value={formData.children_count}
-                onChange={(e) => setFormData({ ...formData, children_count: parseInt(e.target.value) || 0 })}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    children_count: parseInt(e.target.value) || 0,
+                  }))
+                }
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
                 {error}
               </div>
             )}

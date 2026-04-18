@@ -8,12 +8,19 @@ interface Event {
   id: string;
   name: string;
   date: string;
+  start_time?: string;
+  end_time?: string;
+  venue?: string;
+  address?: string;
+  parking_info?: string;
+  organizer_id: string;
 }
 
 interface Registration {
   id: string;
   name: string;
   phone: string;
+  adults_count: number;
   children_count: number;
   checked_in: boolean;
   checked_in_at?: string;
@@ -35,17 +42,33 @@ export default function CheckinAppPage() {
   const [searchResults, setSearchResults] = useState<Registration[]>([]);
   const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState('');
   const [scanning, setScanning] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [success, setSuccess] = useState('');
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const [editCounts, setEditCounts] = useState({
+    adults_count: 0,
+    children_count: 0
+  });
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (eventId) {
       fetchEventData();
     }
   }, [eventId]);
+
+  // Cleanup QR scanner on unmount
+  useEffect(() => {
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.clear();
+        scannerRef.current = null;
+      }
+    };
+  }, []);
 
   const fetchEventData = async () => {
     try {
@@ -75,9 +98,11 @@ export default function CheckinAppPage() {
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
+      setSearchLoading(false);
       return;
     }
 
+    setSearchLoading(true);
     try {
       const response = await fetch(`/api/events/${eventId}/search?phone=${encodeURIComponent(searchQuery)}`);
       if (response.ok) {
@@ -88,6 +113,32 @@ export default function CheckinAppPage() {
       }
     } catch (err) {
       setError('Search error occurred');
+    } finally {
+      setSearchLoading(false);
+      searchTimeoutRef.current = null;
+    }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
+    }
+    
+    // Only search if we have at least 3 digits (reasonable phone number length)
+    if (value.length >= 3) {
+      setSearchLoading(true);
+      searchTimeoutRef.current = setTimeout(() => {
+        handleSearch();
+      }, 500); // 500ms delay for debouncing
+    } else {
+      // Clear results if phone is too short
+      setSearchResults([]);
+      setSearchLoading(false);
     }
   };
 
@@ -95,31 +146,42 @@ export default function CheckinAppPage() {
     setScanning(true);
     setSelectedRegistration(null);
     setSearchResults([]);
-
-    const scanner = new Html5QrcodeScanner(
-      "qr-reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      false
-    );
-
-    scanner.render(
-      (decodedText) => {
-        // Extract registration ID from URL
-        const urlParts = decodedText.split('/');
-        const registrationId = urlParts[urlParts.length - 1];
-        
-        if (registrationId) {
-          fetchRegistrationById(registrationId);
-        }
-        scanner.clear();
+    
+    // Use setTimeout to ensure DOM is updated before accessing element
+    setTimeout(() => {
+      const qrReaderElement = document.getElementById('qr-reader');
+      if (!qrReaderElement) {
+        console.error('QR reader element not found');
+        setError('QR scanner initialization failed');
         setScanning(false);
-      },
-      (errorMessage) => {
-        // Handle scan errors silently
+        return;
       }
-    );
 
-    scannerRef.current = scanner;
+      const scanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        false
+      );
+
+      scanner.render(
+        (decodedText) => {
+          // Extract registration ID from URL
+          const urlParts = decodedText.split('/');
+          const registrationId = urlParts[urlParts.length - 1];
+          
+          if (registrationId) {
+            fetchRegistrationById(registrationId);
+          }
+          scanner.clear();
+          setScanning(false);
+        },
+        (errorMessage) => {
+          // Handle scan errors silently
+        }
+      );
+
+      scannerRef.current = scanner;
+    }, 100);
   };
 
   const stopQRScanner = () => {
@@ -137,6 +199,13 @@ export default function CheckinAppPage() {
         const data = await response.json();
         if (data.registration.event_id === eventId) {
           setSelectedRegistration(data.registration);
+          const adultsCount = data.registration.adults_count || 1;
+          const childrenCount = data.registration.children_count || 0;
+          console.log('Setting edit counts:', { adultsCount, childrenCount });
+          setEditCounts({
+            adults_count: adultsCount,
+            children_count: childrenCount
+          });
           setSearchResults([]);
         } else {
           setError('This registration is for a different event');
@@ -159,6 +228,13 @@ export default function CheckinAppPage() {
     try {
       const response = await fetch(`/api/registrations/${registration.id}/checkin`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          adults_count: editCounts.adults_count,
+          children_count: editCounts.children_count
+        }),
       });
 
       if (response.ok) {
@@ -250,22 +326,24 @@ export default function CheckinAppPage() {
             {/* Phone Search */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-3">Search by Phone</h3>
-              <div className="flex space-x-2">
+              <div className="relative">
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Enter phone number..."
-                  className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                  onChange={handlePhoneChange}
+                  placeholder="Enter phone number (auto-searches as you type)..."
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                 />
-                <button
-                  onClick={handleSearch}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Search
-                </button>
+                {/* Search indicator */}
+                {searchLoading && (
+                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                    <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                  </div>
+                )}
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Type at least 3 digits to automatically search
+              </p>
             </div>
 
             {/* QR Scanner */}
@@ -309,6 +387,7 @@ export default function CheckinAppPage() {
                     <div>
                       <p className="font-medium text-gray-900">{registration.name}</p>
                       <p className="text-sm text-gray-600">{registration.phone}</p>
+                      <p className="text-sm text-gray-600">Adults: {registration.adults_count}</p>
                       <p className="text-sm text-gray-600">Children: {registration.children_count}</p>
                     </div>
                     <div className="flex items-center space-x-3">
@@ -340,10 +419,11 @@ export default function CheckinAppPage() {
         {selectedRegistration && (
           <div className="bg-white shadow rounded-lg p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Registration Details</h3>
-            <div className="flex justify-between items-center">
+            <div className="space-y-4">
               <div>
                 <p className="font-medium text-gray-900">{selectedRegistration.name}</p>
                 <p className="text-sm text-gray-600">{selectedRegistration.phone}</p>
+                <p className="text-sm text-gray-600">Adults: {selectedRegistration.adults_count}</p>
                 <p className="text-sm text-gray-600">Children: {selectedRegistration.children_count}</p>
                 {selectedRegistration.checked_in_at && (
                   <p className="text-sm text-gray-600">
@@ -351,24 +431,79 @@ export default function CheckinAppPage() {
                   </p>
                 )}
               </div>
-              <div className="flex items-center space-x-3">
-                <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                  selectedRegistration.checked_in 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {selectedRegistration.checked_in ? 'Checked In' : 'Not Checked In'}
-                </span>
-                {!selectedRegistration.checked_in && (
-                  <button
-                    onClick={() => handleCheckIn(selectedRegistration)}
-                    disabled={checkingIn}
-                    className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 text-lg font-medium"
-                  >
-                    {checkingIn ? 'Checking in...' : 'Check In'}
-                  </button>
-                )}
-              </div>
+              
+              {/* Editable counts */}
+              {!selectedRegistration.checked_in && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Number of Adults
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={editCounts.adults_count}
+                      onChange={(e) => setEditCounts({ ...editCounts, adults_count: parseInt(e.target.value) || 1 })}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Number of Children
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="20"
+                      value={editCounts.children_count}
+                      onChange={(e) => setEditCounts({ ...editCounts, children_count: parseInt(e.target.value) || 0 })}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Display counts when checked in */}
+              {selectedRegistration.checked_in && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Number of Adults
+                    </label>
+                    <p className="w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 sm:text-sm">
+                      {selectedRegistration.adults_count}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Number of Children
+                    </label>
+                    <p className="w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 sm:text-sm">
+                      {selectedRegistration.children_count}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-3 mt-4">
+              <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
+                selectedRegistration.checked_in 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                {selectedRegistration.checked_in ? 'Checked In' : 'Not Checked In'}
+              </span>
+              {!selectedRegistration.checked_in && (
+                <button
+                  onClick={() => handleCheckIn(selectedRegistration)}
+                  disabled={checkingIn}
+                  className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 text-lg font-medium"
+                >
+                  {checkingIn ? 'Checking in...' : 'Check In'}
+                </button>
+              )}
             </div>
           </div>
         )}
