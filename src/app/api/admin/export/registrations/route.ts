@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     // Generate CSV data
     const csvData = [
-      ['Registration ID', 'Event Name', 'Event Date', 'Name', 'Phone', 'Address', 'Adults Count', 'Children Count', 'Checked In', 'Checked In At', 'Lunch Served', 'Lunch Served At', 'Adults Lunch Served', 'Children Lunch Served', 'Created At']
+      ['Registration ID', 'Event Name', 'Event Date', 'Name', 'Phone', 'Email', 'Address', 'Adults Count', 'Children Count', 'Checked In', 'Checked In At', 'Lunch Served', 'Lunch Served At', 'Adults Lunch Served', 'Children Lunch Served', 'Created At']
     ];
 
     for (const registration of registrations) {
@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
         eventInfo?.date || '',
         registration.name,
         registration.phone,
+        registration.email || '',
         registration.address || '',
         registration.adults_count.toString(),
         registration.children_count.toString(),

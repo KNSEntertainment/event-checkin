@@ -35,6 +35,7 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [eventStats, setEventStats] = useState<{[key: string]: { adults: number; children: number } }>({});
   const router = useRouter();
+  const SUPER_ADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || 'admin@eventcheckin.com';
 
   useEffect(() => {
     if (!isSignedIn) {
@@ -108,6 +109,40 @@ export default function DashboardPage() {
     }
   };
 
+  const handleDownloadReport = async (eventId: string, eventName: string) => {
+    try {
+      const response = await fetch(`/api/events/${eventId}/export`);
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // Get filename from Content-Disposition header or create one
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `event-${eventId}-report.csv`;
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+        
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        setError('Failed to download report');
+      }
+    } catch (err) {
+      setError('Error downloading report');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -142,6 +177,18 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="flex space-x-3">
+                {/* Admin Access Button */}
+                {user?.primaryEmailAddress?.emailAddress === SUPER_ADMIN_EMAIL && (
+                  <Link
+                    href="/admin"
+                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 text-white font-medium rounded-xl hover:from-red-700 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Admin Panel
+                  </Link>
+                )}
                 <Link
                   href="/create-event"
                   className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
@@ -225,6 +272,15 @@ export default function DashboardPage() {
                           </span>
                         </div>
                       </div>
+                      <button
+                        onClick={() => handleDownloadReport(event.id, event.name)}
+                        className="inline-flex items-center justify-center p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Download Report"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </button>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4 mb-6">

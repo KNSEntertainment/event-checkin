@@ -5,9 +5,9 @@ import mongoose from 'mongoose';
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const user = await auth();
     
-    if (!userId) {
+    if (!user?.userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -24,10 +24,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const user = await auth();
-    const userEmail = user?.sessionClaims?.email as string;
+    // Get admin email from proxy header
+    const adminEmailHeader = request.headers.get('x-admin-email');
     
-    if (userEmail !== SUPER_ADMIN_EMAIL) {
+    if (!SUPER_ADMIN_EMAIL) {
+      console.error('SUPER_ADMIN_EMAIL environment variable not set');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    // Check if admin email from proxy matches environment variable
+    if (adminEmailHeader === SUPER_ADMIN_EMAIL) {
+      console.log('Admin Events API check:', { adminEmail: adminEmailHeader, SUPER_ADMIN_EMAIL, isMatch: true });
+    } else {
+      console.log('Admin Events API check:', { adminEmail: adminEmailHeader, SUPER_ADMIN_EMAIL, isMatch: false });
       return NextResponse.json(
         { error: 'Access denied. Admin privileges required.' },
         { status: 403 }

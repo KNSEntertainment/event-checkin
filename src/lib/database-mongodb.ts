@@ -27,6 +27,7 @@ const RegistrationSchema = new mongoose.Schema({
   event_id: { type: String, required: true, ref: 'Event' },
   name: { type: String, required: true },
   phone: { type: String, required: true },
+  email: { type: String },
   address: { type: String },
   adults_count: { type: Number, required: true, default: 1 },
   children_count: { type: Number, required: true, default: 0 },
@@ -112,6 +113,7 @@ export const createRegistration = async (db: any, registrationData: {
   event_id: string;
   name?: string;
   phone?: string;
+  email?: string;
   address?: string;
   adults_count?: number;
   children_count?: number;

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB, createRegistration, getEventById } from '@/lib/database-mongodb';
+import { sendWelcomeEmail } from '@/lib/email-service';
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: eventId } = await params;
-    const { name, phone, address, adults_count, children_count } = await request.json();
+    const { name, phone, email, address, adults_count, children_count } = await request.json();
 
     if (!eventId || !name || !phone || !adults_count) {
       return NextResponse.json(
@@ -56,9 +57,32 @@ export async function POST(
       event_id: eventId,
       name,
       phone,
+      email,
+      address,
       adults_count: (adults_count !== undefined && adults_count !== null) ? adults_count : 1,
       children_count: (children_count !== undefined && children_count !== null) ? children_count : 0
     });
+
+    // Send welcome email if email is provided
+    if (email && event) {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL || 'http://localhost:3000';
+        const checkinURL = `${baseUrl}/checkin-individual/${registration.id}`;
+        
+        await sendWelcomeEmail(email, {
+          eventName: event.name,
+          eventDate: event.date,
+          eventVenue: event.venue,
+          eventAddress: event.address,
+          registrationId: registration.id,
+          userName: name,
+          checkinURL,
+        });
+      } catch (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+        // Don't fail the registration if email fails
+      }
+    }
 
     return NextResponse.json({ registration });
   } catch (error) {

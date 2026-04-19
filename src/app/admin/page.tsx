@@ -53,8 +53,11 @@ export default function AdminPage() {
     }
 
     // Check if user is super admin
-    if (user?.primaryEmailAddress?.emailAddress !== SUPER_ADMIN_EMAIL) {
-      setError('Access denied. Super admin privileges required.');
+    const userEmail = user?.primaryEmailAddress?.emailAddress;
+    console.log('Admin access check:', { userEmail, SUPER_ADMIN_EMAIL, isMatch: userEmail === SUPER_ADMIN_EMAIL });
+    
+    if (userEmail !== SUPER_ADMIN_EMAIL) {
+      setError(`Access denied. Super admin privileges required. Current email: ${userEmail}, Expected: ${SUPER_ADMIN_EMAIL}`);
       setLoading(false);
       return;
     }

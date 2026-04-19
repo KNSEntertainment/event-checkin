@@ -20,6 +20,7 @@ interface RegistrationData {
   name: string;
   phone: string;
   address: string;
+  email?: string;
   adults_count: number | string;
   children_count: number | string;
 }
@@ -63,6 +64,7 @@ export default function RegisterPage() {
     name: '',
     phone: '',
     address: '',
+    email: '',
     adults_count: 1,
     children_count: 0,
   });
@@ -368,7 +370,23 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Address — single field, Geoapify autocomplete */}
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email || ''}
+                onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                placeholder="your.email@example.com"
+              />
+            </div>
+
+            {/* Address - single field, Geoapify autocomplete */}
             <div>
               <label htmlFor="address" className="block text-sm font-medium text-gray-700">
                 Address *
