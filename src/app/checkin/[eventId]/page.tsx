@@ -459,7 +459,7 @@ export default function CheckinAppPage() {
                   value={searchQuery}
                   onChange={handlePhoneChange}
                   placeholder="Enter phone number (auto-searches as you type)..."
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                  className="w-full text-black border border-gray-300 rounded-md px-3 py-2 pr-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                 />
                 {/* Search indicator */}
                 {searchLoading && (
@@ -542,7 +542,7 @@ export default function CheckinAppPage() {
                           max="20"
                           defaultValue={registration.adults_count || 1}
                           id={`adults-${registration.id}`}
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+                          className="w-full text-black border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
                         />
                       </div>
                       <div>
@@ -555,7 +555,7 @@ export default function CheckinAppPage() {
                           max="20"
                           defaultValue={registration.children_count || 0}
                           id={`children-${registration.id}`}
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+                          className="w-full text-black border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
                         />
                       </div>
                     </div>
@@ -568,7 +568,7 @@ export default function CheckinAppPage() {
                         <label className="block text-xs font-medium text-gray-700 mb-1">
                           Adults
                         </label>
-                        <p className="w-full border border-gray-200 rounded px-2 py-1 bg-gray-50 text-sm">
+                        <p className="w-full text-black border border-gray-200 rounded px-2 py-1 bg-gray-50 text-sm">
                           {registration.adults_count}
                         </p>
                       </div>
@@ -576,7 +576,7 @@ export default function CheckinAppPage() {
                         <label className="block text-xs font-medium text-gray-700 mb-1">
                           Children
                         </label>
-                        <p className="w-full border border-gray-200 rounded px-2 py-1 bg-gray-50 text-sm">
+                        <p className="w-full text-black border border-gray-200 rounded px-2 py-1 bg-gray-50 text-sm">
                           {registration.children_count}
                         </p>
                       </div>

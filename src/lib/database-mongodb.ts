@@ -168,6 +168,11 @@ export const updateRegistrationLunch = async (db: any, registrationId: string, u
   return registration ? registration.toObject() : null;
 };
 
+export const getRegistrationsByEventId = async (db: any, eventId: string) => {
+  const registrations = await Registration.find({ event_id: eventId }).sort({ created_at: -1 });
+  return registrations.map(reg => reg.toObject());
+};
+
 export const searchRegistrationByPhone = async (db: any, eventId: string, phone: string) => {
   const registrations = await Registration.find({ 
     event_id: eventId, 
@@ -207,6 +212,11 @@ export const createOrganizer = async (db: any, clerkUserId: string, email: strin
 
 export const getOrganizerByClerkId = async (db: any, clerkUserId: string) => {
   const organizer = await Organizer.findOne({ clerk_user_id: clerkUserId });
+  return organizer ? organizer.toObject() : null;
+};
+
+export const deleteOrganizer = async (db: any, organizerId: string) => {
+  const organizer = await Organizer.findOneAndDelete({ id: organizerId });
   return organizer ? organizer.toObject() : null;
 };
 

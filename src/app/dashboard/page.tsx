@@ -32,11 +32,14 @@ interface Registration {
 export default function DashboardPage() {
   const { isSignedIn, user } = useUser();
   const [events, setEvents] = useState<Event[]>([]);
+  const [eventStats, setEventStats] = useState<{[key: string]: { adults: number; children: number }}>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [eventStats, setEventStats] = useState<{[key: string]: { adults: number; children: number } }>({});
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showPrivacyMenu, setShowPrivacyMenu] = useState(false);
   const router = useRouter();
   const SUPER_ADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || 'admin@eventcheckin.com';
 
@@ -48,6 +51,18 @@ export default function DashboardPage() {
 
     fetchEvents();
   }, [isSignedIn]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showPrivacyMenu) {
+        setShowPrivacyMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPrivacyMenu]);
 
   const fetchEvents = async () => {
     try {
@@ -184,6 +199,106 @@ This action cannot be undone.`;
     }
   };
 
+  const handleDataExport = async () => {
+    try {
+      setIsExporting(true);
+      setError('');
+      
+      const response = await fetch('/api/user/data-export');
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // Get filename from Content-Disposition header or create one
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `event-checkin-data-export-${new Date().toISOString().split('T')[0]}.json`;
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+        
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        setSuccess('Your data has been exported successfully!');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError('Failed to export data');
+      }
+    } catch (err) {
+      setError('Error exporting data');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDataDeletion = async () => {
+    const confirmationMessage = `Are you sure you want to delete all your data? This action cannot be undone and will permanently delete:
+    
+    - All events you created
+    - All registrations for your events
+    - Your organizer account information
+    
+    This action is irreversible and will remove all your data from our system.`;
+
+    if (!confirm(confirmationMessage)) {
+      return;
+    }
+
+    const finalConfirmation = `This is your final warning. Deleting your data will:
+    
+    1. Remove all ${events.length} events you created
+    2. Delete all registration data for your events
+    3. Remove your organizer account
+    4. You will need to create a new account to use our services again
+    
+    Type 'DELETE MY DATA' to confirm this irreversible action.`;
+
+    const userConfirmation = prompt(finalConfirmation);
+    if (userConfirmation !== 'DELETE MY DATA') {
+      setError('Data deletion cancelled. Confirmation text did not match.');
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      setError('');
+      
+      const response = await fetch('/api/user/data-deletion', {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setSuccess(`Data deletion completed! Deleted ${result.summary.eventsDeleted} events and ${result.summary.registrationsDeleted} registrations. You will be logged out automatically.`);
+        
+        // Clear local state
+        setEvents([]);
+        setEventStats({});
+        
+        // Log user out after 3 seconds
+        setTimeout(() => {
+          window.location.href = '/sign-out';
+        }, 3000);
+      } else {
+        setError('Failed to delete data');
+      }
+    } catch (err) {
+      setError('Error deleting data');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -230,15 +345,90 @@ This action cannot be undone.`;
                     Admin Panel
                   </Link>
                 )}
+                <button
+                  onClick={handleDataExport}
+                  disabled={isExporting}
+                  className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-teal-600 text-white font-medium rounded-xl hover:from-green-700 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  {isExporting ? 'Exporting...' : 'Download My Data'}
+                </button>
                 <Link
                   href="/create-event"
-                  className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-white"
                 >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 mr-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  Create New Event
+                 <span className="text-white"> Create New Event</span>
                 </Link>
+                
+                {/* Privacy & Data Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowPrivacyMenu(!showPrivacyMenu)}
+                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white font-medium rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Privacy & Data
+                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {showPrivacyMenu && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            setShowPrivacyMenu(false);
+                            handleDataExport();
+                          }}
+                          disabled={isExporting}
+                          className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <svg className="w-4 h-4 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          {isExporting ? 'Exporting...' : 'Download My Data'}
+                        </button>
+                        
+                        <div className="border-t border-gray-200"></div>
+                        
+                        <button
+                          onClick={() => {
+                            setShowPrivacyMenu(false);
+                            handleDataDeletion();
+                          }}
+                          disabled={isDeleting}
+                          className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          {isDeleting ? 'Deleting...' : 'Delete My Data'}
+                        </button>
+                        
+                        <div className="border-t border-gray-200"></div>
+                        
+                        <Link
+                          href="/privacy"
+                          onClick={() => setShowPrivacyMenu(false)}
+                          className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        >
+                          <svg className="w-4 h-4 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Privacy Policy
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -356,24 +546,24 @@ This action cannot be undone.`;
                       </div>
                     </div>
                     
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 ">
                       <Link
                         href={`/event/${event.id}`}
                         className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                       >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 mr-1 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
-                        Manage
+                        <span className='text-white'>Manage</span>
                       </Link>
                       <Link
                         href={`/checkin/${event.id}`}
                         className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
                       >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 mr-1 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        Check-in
+                        <span className='text-white'>Check-in</span>
                       </Link>
                       <button
                         onClick={() => handleDeleteEvent(event.id)}
@@ -389,6 +579,7 @@ This action cannot be undone.`;
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         )}
+                        <span className='text-red-600'>Delete</span>
                       </button>
                     </div>
                   </div>

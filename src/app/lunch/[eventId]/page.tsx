@@ -384,7 +384,7 @@ export default function LunchVerificationPage() {
                   value={searchQuery}
                   onChange={handlePhoneChange}
                   placeholder="Enter phone number (auto-searches as you type)..."
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                  className="w-full text-black border border-gray-300 rounded-md px-3 py-2 pr-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                 />
                 {/* Search indicator */}
                 {searchLoading && (
@@ -465,7 +465,7 @@ export default function LunchVerificationPage() {
                         min="0"
                         max={registration.adults_count - registration.adults_lunch_served}
                         defaultValue="0"
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                        className="w-full text-black border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                         id={`adults-${registration.id}`}
                         onChange={() => {
                           const adultsInput = document.getElementById(`adults-${registration.id}`) as HTMLInputElement;
@@ -486,7 +486,7 @@ export default function LunchVerificationPage() {
                         min="0"
                         max={registration.children_count - registration.children_lunch_served}
                         defaultValue="0"
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                        className="w-full text-black border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                         id={`children-${registration.id}`}
                         onChange={() => {
                           const adultsInput = document.getElementById(`adults-${registration.id}`) as HTMLInputElement;

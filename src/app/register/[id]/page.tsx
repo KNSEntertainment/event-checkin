@@ -68,6 +68,7 @@ export default function RegisterPage() {
     adults_count: 1,
     children_count: 0,
   });
+  const [hasConsented, setHasConsented] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -501,19 +502,42 @@ export default function RegisterPage() {
                     }
                   }
                 }}
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
                 {error}
               </div>
             )}
 
+            {/* Data Processing Consent */}
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div className="flex items-start">
+                <input
+                  id="data-consent"
+                  type="checkbox"
+                  checked={hasConsented}
+                  onChange={(e) => setHasConsented(e.target.checked)}
+                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  required
+                />
+                <label htmlFor="data-consent" className="ml-3 text-sm text-gray-700">
+                  <span className="font-medium">I consent to the processing of my personal data</span>
+                  <p className="text-gray-600 mt-1">
+                    I understand that my personal information (name, phone, email, address) will be processed for event registration and management purposes. I have read and agree to the{' '}
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">
+                      Privacy Policy
+                    </a>
+                    {' '}and acknowledge my rights under GDPR.
+                  </p>
+                </label>
+              </div>
+            </div>
+
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !hasConsented}
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Registering...' : 'Register for Event'}

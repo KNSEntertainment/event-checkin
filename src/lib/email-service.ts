@@ -183,9 +183,22 @@ const createWelcomeEmailTemplate = async (data: WelcomeEmailData): Promise<strin
           ${data.eventAddress ? `<p><strong>Address:</strong> ${data.eventAddress}</p>` : ''}
         </div>
 
+        <div class="privacy-notice" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #007bff;">
+          <h4 style="color: #007bff; margin-bottom: 10px; font-size: 16px;">Your Privacy Rights</h4>
+          <p style="margin: 5px 0; font-size: 14px;">Your personal data is processed in accordance with our Privacy Policy and applicable data protection laws.</p>
+          <p style="margin: 5px 0; font-size: 14px;">You have the right to access, rectify, or delete your personal data at any time.</p>
+          <p style="margin: 5px 0; font-size: 14px;">
+            <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/privacy" style="color: #007bff; text-decoration: underline;">Read our Privacy Policy</a> to learn more about your rights.
+          </p>
+        </div>
+
         <div class="footer">
           <p>If you have any questions, please contact the event organizers.</p>
           <p>See you at the event!</p>
+          <p style="font-size: 12px; color: #6c757d; margin-top: 15px;">
+            This email was sent because you registered for ${data.eventName}. 
+            You can manage your data privacy settings in your account dashboard.
+          </p>
         </div>
       </div>
     </body>
@@ -318,9 +331,22 @@ const createEventCancellationEmailTemplate = (data: EventCancellationEmailData):
 
         <p>We appreciate your understanding and hope to see you at future events.</p>
 
+        <div class="privacy-notice" style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+          <h4 style="color: #dc3545; margin-bottom: 10px; font-size: 16px;">Data Processing Notice</h4>
+          <p style="margin: 5px 0; font-size: 14px;">Your registration data for this cancelled event will be handled according to our data retention policy.</p>
+          <p style="margin: 5px 0; font-size: 14px;">You can request deletion of your personal data at any time through your account settings.</p>
+          <p style="margin: 5px 0; font-size: 14px;">
+            <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/privacy" style="color: #dc3545; text-decoration: underline;">View our Privacy Policy</a> for more information.
+          </p>
+        </div>
+
         <div class="footer">
           <p>Thank you for your patience and understanding.</p>
           <p>If you have any questions, please don't hesitate to contact us.</p>
+          <p style="font-size: 12px; color: #6c757d; margin-top: 15px;">
+            This email was sent regarding the cancellation of ${data.eventName}. 
+            Your data privacy rights remain in effect.
+          </p>
         </div>
       </div>
     </body>
