@@ -35,9 +35,9 @@ export default function Home() {
             </h1>
             <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
               Create events, collect registrations, and check in attendees with QR codes or phone search. 
-              Perfect for conferences, meetings, and gatherings.
+              Perfect for events, conferences, meetings, and gatherings.
             </p>
-            <div className="mt-5 max-w-3xl mx-auto sm:flex sm:justify-center md:mt-8">
+            <div className="mt-5 w-fit mx-auto sm:flex sm:justify-center md:mt-8">
               {isSignedIn ? (
                 <>
                   <div className="rounded-md shadow">
@@ -82,7 +82,7 @@ export default function Home() {
               Everything you need for event check-ins
             </h2>
             <p className="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
-              Simple, fast, and reliable event management
+              Simple, fast, and reliable event tracking and management
             </p>
           </div>
 

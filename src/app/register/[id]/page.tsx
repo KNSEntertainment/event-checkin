@@ -289,7 +289,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 text-center">Your Check-in QR Code</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 text-center">Take Screenshot of this QR</h2>
             <div className="flex justify-center mb-4">
               <div className="bg-white p-4 rounded-lg shadow-sm">
                 <QRCode value={checkinURL} size={200} />
@@ -298,14 +298,10 @@ export default function RegisterPage() {
             <p className="text-sm text-gray-600 text-center mb-4">
               Show this QR code at the event entrance for quick check-in
             </p>
-            <div className="bg-gray-100 p-3 rounded">
-              <p className="text-xs text-gray-600 font-mono text-center break-all">{checkinURL}</p>
-            </div>
+       
           </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">Save this QR code or take a screenshot for easy access</p>
-          </div>
+        
         </div>
       </div>
     );

@@ -7,6 +7,7 @@ import QRCode from 'react-qr-code';
 interface Event {
   id: string;
   name: string;
+  organizer: string;
   date: string;
   start_time?: string;
   end_time?: string;
@@ -235,21 +236,77 @@ export default function EventPage() {
           </div>
         </div>
 
-        {/* Compact QR Code Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col lg:flex-row items-center gap-6">
-            <div className="bg-white p-4 rounded-xl shadow-md">
-              <QRCode value={registrationURL} size={180} />
-            </div>
-            <div className="flex-1 text-center lg:text-left">
-              <h2 className="text-lg font-bold text-gray-900 mb-2">Registration QR Code</h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Share this QR code for people to register for your event.
-              </p>
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-600 font-mono break-all">{registrationURL}</p>
+        {/* Event Poster Section */}
+        <div className="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl shadow-lg border border-gray-200 p-8 mb-6 text-gray-900">
+          <div className="max-w-md flex flex-col items-center mx-auto">
+            {/* Event Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-3xl sm:text-4xl font-bold mb-2">{event?.name}</h1>
+              <div className="flex items-center justify-center text-xl text-gray-700 mb-4">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>{event?.organizer}</span>
+              </div>
+              <div className="flex flex-col justify-center items-center gap-2 text-lg">
+                <div className="flex items-center font-semibold">
+                
+                  <span>{new Date(event?.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                </div>
+                <div className="flex items-center font-semibold">
+            
+                  <span>{event?.start_time} - {event?.end_time}</span>
+                </div>
+                <div className="flex items-center font-semibold">
+               
+                  <span>{event?.venue}</span>
+                </div>
+                <div className="flex items-center text-gray-600">
+               
+                  <span>({event?.parking_info})</span>
+                </div>
               </div>
             </div>
+
+            {/* QR Code Section */}
+            <div className="w-full sm:max-w-sm bg-white bg-opacity-95 rounded-xl p-6 shadow-xl">
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Scan to Register</h2>
+            
+              </div>
+              
+              <div className="flex flex-col lg:flex-row items-center justify-center gap-8">
+                {/* QR Code */}
+                <div className="bg-white p-6 rounded-xl shadow-lg border-2 border-indigo-200">
+                  <QRCode value={registrationURL} size={200} />
+                </div>
+                
+            
+              </div>
+            </div>
+                  <div className="max-w-sm bg-gray-50 mt-6 p-2 rounded-lg border border-gray-200">
+                    <p className="text-xs text-gray-600 font-mono mb-2 break-all">{registrationURL}</p>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(registrationURL);
+                          alert('Link copied to clipboard!');
+                        } catch (err) {
+                          // Fallback for older browsers
+                          const textArea = document.createElement('textarea');
+                          textArea.value = registrationURL;
+                          document.body.appendChild(textArea);
+                          textArea.select();
+                          document.execCommand('copy');
+                          document.body.removeChild(textArea);
+                          alert('Link copied to clipboard!');
+                        }
+                      }}
+                      className="mt-3 w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                    >
+                      Copy Link
+                    </button>
+                  </div>
           </div>
         </div>
 

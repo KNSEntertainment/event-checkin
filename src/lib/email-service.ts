@@ -18,6 +18,7 @@ interface WelcomeEmailData {
   eventAddress?: string;
   registrationId: string;
   userName: string;
+  userPhone: string;
   checkinURL: string;
 }
 
@@ -173,7 +174,7 @@ const createWelcomeEmailTemplate = async (data: WelcomeEmailData): Promise<strin
 
         <p>Hi ${data.userName},</p>
         
-        <p>Thank you for registering for <strong>${data.eventName}</strong>. Your registration has been confirmed and we're excited to see you there!</p>
+        <p>Thank you for registering for <strong>${data.eventName}</strong>. Your registration has been confirmed and we're excited to see you there! Please either show screenshot of QR code for attending the event or remember the phone number ${data.userPhone} you have used to register for the event. </p>
 
         <div class="event-info">
           <h3>Event Details</h3>
@@ -182,20 +183,7 @@ const createWelcomeEmailTemplate = async (data: WelcomeEmailData): Promise<strin
           ${data.eventAddress ? `<p><strong>Address:</strong> ${data.eventAddress}</p>` : ''}
         </div>
 
-        <div class="qr-section">
-          <h3>Your Check-in QR Code</h3>
-          <p><strong>Save this QR code or take a screenshot for quick check-in at the event entrance.</strong></p>
-          <div class="qr-code">
-            <img src="${qrCodeDataURL}" alt="Check-in QR Code" style="display: block; max-width: 100%; height: auto;" />
-          </div>
-          
-      
-        </div>
-
-  
-
         <div class="footer">
-          <p>This QR code is unique to your registration. Please do not share it with others.</p>
           <p>If you have any questions, please contact the event organizers.</p>
           <p>See you at the event!</p>
         </div>

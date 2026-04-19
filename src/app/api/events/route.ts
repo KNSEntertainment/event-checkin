@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, date, start_time, end_time, venue, address, parking_info, organizerEmail } = await request.json();
+    const { organizer: organizerName, name, date, start_time, end_time, venue, address, parking_info, organizerEmail } = await request.json();
 
-    if (!name || !date || !organizerEmail) {
+    if (!organizerName || !name || !date || !organizerEmail) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
     // Create event
     const event = await createEvent({}, {
       id: randomUUID(),
+      organizer: organizerName,
       name,
       date,
       start_time,

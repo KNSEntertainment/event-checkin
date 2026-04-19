@@ -76,6 +76,7 @@ export async function POST(
           eventAddress: event.address,
           registrationId: registration.id,
           userName: name,
+          userPhone: phone,
           checkinURL,
         });
       } catch (emailError) {

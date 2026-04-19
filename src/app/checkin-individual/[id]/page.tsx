@@ -6,6 +6,7 @@ import QRCode from 'react-qr-code';
 
 interface Registration {
   id: string;
+  event_id: string;
   name: string;
   phone: string;
   email?: string;
@@ -196,7 +197,7 @@ export default function CheckinPage() {
                     </div>
                   </div>
 
-                  {/* <div className="flex items-center pt-4">
+                  <div className="flex items-center pt-4">
                     <div className={`px-4 py-2 rounded-full text-sm font-bold ${
                       registration.checked_in 
                         ? 'bg-green-100 text-green-800 border-2 border-green-200' 
@@ -207,18 +208,24 @@ export default function CheckinPage() {
                           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                           </svg>
-                          Checked In
+                         Already Checked In
                         </div>
                       ) : (
                         <div className="flex items-center">
                           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m0 0l-3-3m3 3V8m0 0a9 9 0 110-18 9 9 0 0118 0z" />
                           </svg>
-                          Not Checked In
+                          ""
                         </div>
                       )}
                     </div>
-                  </div> */}
+                    <button
+                      onClick={() => router.push(`/checkin/${registration?.event_id}`)}
+                      className="ml-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Back
+                    </button>
+                  </div>
                 </div>
 
                 {/* Check-in Button */}

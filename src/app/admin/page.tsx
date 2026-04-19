@@ -53,9 +53,15 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
+  const [adminPin, setAdminPin] = useState<string>('');
 
   // Super admin email from environment variables
   const SUPER_ADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || 'admin@eventcheckin.com';
+
+  useEffect(() => {
+    // Set admin PIN only on client side to avoid hydration mismatch
+    setAdminPin(process.env.NEXT_PUBLIC_ADMIN_PIN || '1234');
+  }, []);
 
   useEffect(() => {
     // Check if already authenticated via PIN
@@ -126,17 +132,15 @@ export default function AdminPage() {
     e.preventDefault();
     setPinError('');
     
-    const envPin = process.env.NEXT_PUBLIC_ADMIN_PIN;
-    
     // Debug logging
     console.log('PIN Validation:', {
       input: pinInput,
-      envPin: envPin,
-      expected: envPin,
-      match: pinInput === envPin
+      envPin: adminPin,
+      expected: adminPin,
+      match: pinInput === adminPin
     });
     
-    if (envPin && pinInput === envPin) {
+    if (adminPin && pinInput === adminPin) {
       console.log('Before setIsAuthenticated - isAuthenticated:', isAuthenticated);
       setIsAuthenticated(true);
       setPinInput('');

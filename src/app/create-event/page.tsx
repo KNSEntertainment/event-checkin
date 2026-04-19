@@ -7,6 +7,7 @@ import { useUser } from '@clerk/nextjs';
 export default function CreateEventPage() {
   const { isSignedIn, user } = useUser();
   const [formData, setFormData] = useState({
+    organizer: '',
     name: '',
     date: '',
     start_time: '',
@@ -173,6 +174,23 @@ export default function CreateEventPage() {
         <div className="mt-8">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
             <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Event Organizer */}
+              <div>
+                <label htmlFor="organizer" className="block text-lg font-semibold text-gray-900 mb-2">
+                  Event Organizer *
+                </label>
+                <input
+                  id="organizer"
+                  name="organizer"
+                  type="text"
+                  required
+                  value={formData.organizer}
+                  onChange={(e) => setFormData({ ...formData, organizer: e.target.value })}
+                  className="mt-1 block w-full min-w-0 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                  placeholder="Your name or organization"
+                />
+              </div>
+
               {/* Event Name */}
               <div>
                 <label htmlFor="name" className="block text-lg font-semibold text-gray-900 mb-2">
@@ -185,7 +203,7 @@ export default function CreateEventPage() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                  className="mt-1 block w-full min-w-0 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
                   placeholder="Annual Company Meeting"
                 />
               </div>
@@ -203,7 +221,7 @@ export default function CreateEventPage() {
                     required
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="mt-1 block w-full border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                    className="mt-1 pr-1 block w-full min-w-0 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
                   />
                 </div>
                 <div>
@@ -216,7 +234,7 @@ export default function CreateEventPage() {
                     type="time"
                     value={formData.start_time}
                     onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                    className="mt-1 block w-full border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                    className="mt-1 pr-1 block w-full min-w-0 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
                   />
                 </div>
                 <div>
@@ -229,7 +247,7 @@ export default function CreateEventPage() {
                     type="time"
                     value={formData.end_time}
                     onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                    className="mt-1 block w-full border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                    className="mt-1 pr-1 block w-full min-w-0 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
                   />
                 </div>
               </div>
@@ -245,7 +263,7 @@ export default function CreateEventPage() {
                   type="text"
                   value={formData.venue}
                   onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                  className="mt-1 block w-full min-w-0 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
                   placeholder="Conference Hall A, Main Auditorium, etc."
                 />
               </div>
@@ -352,7 +370,7 @@ export default function CreateEventPage() {
                   rows={3}
                   value={formData.parking_info}
                   onChange={(e) => setFormData({ ...formData, parking_info: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                  className="mt-1 block w-full min-w-0 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
                   placeholder="Free parking available on-site, paid parking across the street, etc."
                 />
               </div>

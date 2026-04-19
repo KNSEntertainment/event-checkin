@@ -11,6 +11,7 @@ if (!MONGODB_URI) {
 const EventSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
+  organizer: { type: String, required: true },
   date: { type: String, required: true },
   start_time: { type: String },
   end_time: { type: String },
@@ -68,6 +69,7 @@ export const connectDB = async () => {
 export const createEvent = async (db: any, eventData: {
   id: string;
   name: string;
+  organizer: string;
   date: string;
   start_time?: string;
   end_time?: string;
