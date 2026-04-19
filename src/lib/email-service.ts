@@ -21,6 +21,14 @@ interface WelcomeEmailData {
   checkinURL: string;
 }
 
+interface EventCancellationEmailData {
+  eventName: string;
+  eventDate: string;
+  eventVenue?: string;
+  eventAddress?: string;
+  userName: string;
+}
+
 // Create transporter
 const createTransporter = () => {
   const config: EmailConfig = {
@@ -40,12 +48,13 @@ const createTransporter = () => {
 const generateQRCode = async (text: string): Promise<string> => {
   try {
     const qrCodeDataURL = await QRCode.toDataURL(text, {
-      width: 200,
-      margin: 1,
+      width: 300,
+      margin: 2,
       color: {
         dark: '#000000',
         light: '#FFFFFF',
       },
+      errorCorrectionLevel: 'H', // High error correction for better scanning
     });
     return qrCodeDataURL;
   } catch (error) {
@@ -115,14 +124,17 @@ const createWelcomeEmailTemplate = async (data: WelcomeEmailData): Promise<strin
         }
         .qr-code {
           background-color: white;
-          padding: 20px;
-          border-radius: 8px;
+          padding: 25px;
+          border-radius: 12px;
           display: inline-block;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          border: 2px solid #e9ecef;
         }
         .qr-code img {
-          max-width: 200px;
-          height: auto;
+          display: block !important;
+          max-width: 250px !important;
+          height: auto !important;
+          border: 1px solid #dee2e6;
         }
         .checkin-url {
           background-color: #e9ecef;
@@ -172,20 +184,15 @@ const createWelcomeEmailTemplate = async (data: WelcomeEmailData): Promise<strin
 
         <div class="qr-section">
           <h3>Your Check-in QR Code</h3>
-          <p>Save this QR code or take a screenshot for quick check-in at the event entrance:</p>
+          <p><strong>Save this QR code or take a screenshot for quick check-in at the event entrance.</strong></p>
           <div class="qr-code">
-            <img src="${qrCodeDataURL}" alt="Check-in QR Code" />
+            <img src="${qrCodeDataURL}" alt="Check-in QR Code" style="display: block; max-width: 100%; height: auto;" />
           </div>
           
-          <div class="checkin-url">
-            <strong>Check-in URL:</strong><br>
-            ${data.checkinURL}
-          </div>
+      
         </div>
 
-        <p style="text-align: center;">
-          <a href="${data.checkinURL}" class="button">View Check-in Page</a>
-        </p>
+  
 
         <div class="footer">
           <p>This QR code is unique to your registration. Please do not share it with others.</p>
@@ -221,6 +228,141 @@ export const sendWelcomeEmail = async (email: string, data: WelcomeEmailData): P
   } catch (error) {
     console.error('Error sending welcome email:', error);
     // Don't throw error to avoid breaking registration flow
+    // Just log it for debugging
+  }
+};
+
+// Create event cancellation email template
+const createEventCancellationEmailTemplate = (data: EventCancellationEmailData): string => {
+  const formattedDate = new Date(data.eventDate).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Event Cancellation - ${data.eventName}</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+          background-color: #f8f9fa;
+        }
+        .container {
+          background-color: white;
+          border-radius: 10px;
+          padding: 30px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+          text-align: center;
+          border-bottom: 2px solid #dc3545;
+          padding-bottom: 20px;
+          margin-bottom: 30px;
+        }
+        .header h1 {
+          color: #dc3545;
+          margin: 0;
+          font-size: 28px;
+        }
+        .event-info {
+          background-color: #f8f9fa;
+          padding: 20px;
+          border-radius: 8px;
+          margin: 20px 0;
+        }
+        .event-info h3 {
+          color: #dc3545;
+          margin-top: 0;
+        }
+        .apology-section {
+          background-color: #fff3cd;
+          padding: 20px;
+          border-radius: 8px;
+          margin: 20px 0;
+          border-left: 4px solid #ffc107;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #dee2e6;
+          color: #6c757d;
+          font-size: 14px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Event Cancellation Notice</h1>
+          <p>Important Information About Your Event</p>
+        </div>
+
+        <p>Dear ${data.userName},</p>
+        
+        <p>We regret to inform you that the event <strong>${data.eventName}</strong> has been cancelled.</p>
+
+        <div class="event-info">
+          <h3>Cancelled Event Details</h3>
+          <p><strong>Event:</strong> ${data.eventName}</p>
+          <p><strong>Date:</strong> ${formattedDate}</p>
+          ${data.eventVenue ? `<p><strong>Venue:</strong> ${data.eventVenue}</p>` : ''}
+          ${data.eventAddress ? `<p><strong>Address:</strong> ${data.eventAddress}</p>` : ''}
+        </div>
+
+        <div class="apology-section">
+          <h3>We're Sorry</h3>
+          <p>We sincerely apologize for any inconvenience this cancellation may cause. This decision was not made lightly, and we understand that you may have made arrangements to attend.</p>
+        </div>
+
+        <p>If you have already made any payments or arrangements related to this event, please contact the event organizers directly for information about refunds or next steps.</p>
+
+        <p>We appreciate your understanding and hope to see you at future events.</p>
+
+        <div class="footer">
+          <p>Thank you for your patience and understanding.</p>
+          <p>If you have any questions, please don't hesitate to contact us.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+// Send event cancellation email
+export const sendEventCancellationEmail = async (email: string, data: EventCancellationEmailData): Promise<void> => {
+  try {
+    if (!email) {
+      console.log('No email provided, skipping cancellation email');
+      return;
+    }
+
+    const transporter = createTransporter();
+    const htmlContent = createEventCancellationEmailTemplate(data);
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || `"Event Checkin" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Event Cancelled - ${data.eventName}`,
+      html: htmlContent,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Event cancellation email sent successfully to ${email}`);
+  } catch (error) {
+    console.error('Error sending event cancellation email:', error);
+    // Don't throw error to avoid breaking deletion flow
     // Just log it for debugging
   }
 };

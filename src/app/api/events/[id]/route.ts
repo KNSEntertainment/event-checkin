@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { connectDB, getEventById, deleteEvent, getEventsByClerkId, updateEvent } from '@/lib/database-mongodb';
+import { connectDB, getEventById, deleteEvent, getEventsByClerkId, updateEvent, getRegistrations } from '@/lib/database-mongodb';
+import { sendEventCancellationEmail } from '@/lib/email-service';
 
 export async function GET(
   request: NextRequest,
@@ -82,9 +83,40 @@ export async function DELETE(
       );
     }
 
+    // Get all registrants for this event to send cancellation emails
+    const registrations = await getRegistrations({}, eventId);
+    
+    // Only send emails if there are registrants with email addresses
+    if (registrations.some(reg => reg.email)) {
+      // Send cancellation emails to all registrants with email addresses
+      const emailPromises = registrations
+        .filter(reg => reg.email) // Only send to registrants with email
+        .map(reg => 
+          sendEventCancellationEmail(reg.email, {
+            eventName: event.name,
+            eventDate: event.date,
+            eventVenue: event.venue,
+            eventAddress: event.address,
+            userName: reg.name
+          })
+        );
+
+      // Send all emails in parallel (don't wait for completion to avoid blocking deletion)
+      Promise.allSettled(emailPromises).then(results => {
+        const successful = results.filter(r => r.status === 'fulfilled').length;
+        const failed = results.filter(r => r.status === 'rejected').length;
+        console.log(`Event deletion: ${successful} emails sent successfully, ${failed} failed`);
+      });
+    }
+
+    // Delete the event
     await deleteEvent({}, eventId);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      emailsSent: registrations.filter(reg => reg.email).length,
+      totalRegistrants: registrations.length
+    });
   } catch (error) {
     console.error('Error deleting event:', error);
     return NextResponse.json(

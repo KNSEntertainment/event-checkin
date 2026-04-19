@@ -33,7 +33,9 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [eventStats, setEventStats] = useState<{[key: string]: { adults: number; children: number } }>({});
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
   const router = useRouter();
   const SUPER_ADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || 'admin@eventcheckin.com';
 
@@ -90,22 +92,60 @@ export default function DashboardPage() {
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-    if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+    // Prevent duplicate calls
+    if (deletingEventId === eventId) {
       return;
     }
 
+    // First get event details and registration count
     try {
+      setDeletingEventId(eventId);
+      
+      const eventResponse = await fetch(`/api/events/${eventId}`);
+      const event = eventResponse.ok ? (await eventResponse.json()).event : null;
+      
+      const statsResponse = await fetch(`/api/events/${eventId}/stats`);
+      const stats = statsResponse.ok ? (await statsResponse.json()).stats : null;
+      
+      const totalPeople = (stats?.adults || 0) + (stats?.children || 0);
+      const totalRegistrations = stats?.total_registered || 0;
+      
+      const confirmationMessage = `Are you sure you want to delete this event?
+
+${event ? `Event: ${event.name}` : 'This event'}
+${totalPeople > 0 ? `People: ${totalPeople} (${totalRegistrations} registration${totalRegistrations !== 1 ? 's' : ''})` : ''}
+
+IMPORTANT: All registrants with email addresses will receive a cancellation email notification.
+
+This action cannot be undone.`;
+
+      if (!confirm(confirmationMessage)) {
+        setDeletingEventId(null);
+        return;
+      }
+
       const response = await fetch(`/api/events/${eventId}`, {
         method: 'DELETE',
       });
       
       if (response.ok) {
+        const result = await response.json();
+        const message = result.emailsSent > 0 
+          ? `Event deleted successfully. ${result.emailsSent} cancellation emails were sent to registrants.`
+          : 'Event deleted successfully.';
+        
+        setSuccess(message);
         setEvents(events.filter(event => event.id !== eventId));
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccess(''), 5000);
       } else {
         setError('Failed to delete event');
       }
     } catch (err) {
       setError('Error deleting event');
+    } finally {
+      setDeletingEventId(null);
     }
   };
 
@@ -214,6 +254,17 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {success && (
+          <div className="mb-6 bg-green-50 border-l-4 border-green-400 p-4 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-green-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-green-700 font-medium">{success}</p>
+            </div>
+          </div>
+        )}
+
         {/* Events List */}
         {events.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
@@ -268,7 +319,7 @@ export default function DashboardPage() {
                               ? 'bg-green-100 text-green-800' 
                               : 'bg-gray-100 text-gray-800'
                           }`}>
-                            {isUpcoming ? `${daysUntil} days away` : 'Past event'}
+                            {isUpcoming ? `${daysUntil} day/s away` : 'Past event'}
                           </span>
                         </div>
                       </div>
@@ -319,11 +370,18 @@ export default function DashboardPage() {
                       </Link>
                       <button
                         onClick={() => handleDeleteEvent(event.id)}
-                        className="inline-flex items-center justify-center px-3 py-2 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 transition-colors"
+                        disabled={deletingEventId === event.id}
+                        className="inline-flex items-center justify-center px-3 py-2 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
+                        {deletingEventId === event.id ? (
+                          <svg className="animate-spin w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        )}
                       </button>
                     </div>
                   </div>

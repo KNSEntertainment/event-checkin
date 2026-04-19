@@ -260,6 +260,11 @@ export default function CheckinAppPage() {
           prev.map(r => r.id === registration.id ? result.registration : r)
         );
 
+        // Update all registrations
+        setAllRegistrations(prev => 
+          prev.map(r => r.id === registration.id ? result.registration : r)
+        );
+
         setTimeout(() => setSuccess(''), 3000);
       } else {
         const errorData = await response.json();
@@ -272,6 +277,121 @@ export default function CheckinAppPage() {
     }
   };
 
+  const handleQuickCheckIn = async (registration: Registration) => {
+    if (registration.checked_in) return;
+
+    setCheckingIn(true);
+    setSelectedRegistration(registration); // Show it's being processed
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch(`/api/registrations/${registration.id}/checkin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          adults_count: registration.adults_count || 1,
+          children_count: registration.children_count || 0
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setSuccess(`${registration.name} checked in successfully!`);
+        
+        // Update stats
+        setStats(prev => ({
+          ...prev,
+          total_checked_in: prev.total_checked_in + 1
+        }));
+
+        // Update search results and all registrations
+        setSearchResults(prev => 
+          prev.map(r => r.id === registration.id ? result.registration : r)
+        );
+
+        setAllRegistrations(prev => 
+          prev.map(r => r.id === registration.id ? result.registration : r)
+        );
+
+        // Clear selected registration after successful check-in
+        setTimeout(() => {
+          setSelectedRegistration(null);
+          setSuccess('');
+        }, 3000);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to check in');
+        setSelectedRegistration(null);
+      }
+    } catch (err) {
+      setError('An error occurred during check-in');
+      setSelectedRegistration(null);
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
+  const handleQuickCheckInWithCounts = async (registration: Registration, adultsCount: number, childrenCount: number) => {
+    if (registration.checked_in) return;
+
+    setCheckingIn(true);
+    setSelectedRegistration(registration); // Show it's being processed
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch(`/api/registrations/${registration.id}/checkin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          adults_count: adultsCount,
+          children_count: childrenCount
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setSuccess(`${registration.name} checked in successfully! (${adultsCount} adults, ${childrenCount} children)`);
+        
+        // Update stats
+        setStats(prev => ({
+          ...prev,
+          total_checked_in: prev.total_checked_in + 1
+        }));
+
+        // Update search results and all registrations
+        setSearchResults(prev => 
+          prev.map(r => r.id === registration.id ? result.registration : r)
+        );
+
+        setAllRegistrations(prev => 
+          prev.map(r => r.id === registration.id ? result.registration : r)
+        );
+
+        // Clear selected registration after successful check-in
+        setTimeout(() => {
+          setSelectedRegistration(null);
+          setSuccess('');
+        }, 3000);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to check in');
+        setSelectedRegistration(null);
+      }
+    } catch (err) {
+      setError('An error occurred during check-in');
+      setSelectedRegistration(null);
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
+  
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -384,16 +504,19 @@ export default function CheckinAppPage() {
         {/* Search Results */}
         {searchResults.length > 0 && (
           <div className="bg-white shadow rounded-lg p-6 mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Search Results</h3>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Search Results</h3>
+              <p className="text-sm text-gray-600 mt-1">{searchResults.filter(r => !r.checked_in).length} unchecked registrations</p>
+            </div>
+            
+            
             <div className="space-y-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
               {searchResults.map((registration) => (
                 <div key={registration.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start mb-3">
                     <div>
                       <p className="font-bold text-gray-900">{registration.name}</p>
-                      <p className="text-sm font-meduim text-gray-600">{registration.phone}</p>
-                      <p className="text-sm font-meduim text-gray-600">Adults: {registration.adults_count}</p>
-                      <p className="text-sm font-meduim text-gray-600">Children: {registration.children_count}</p>
+                      <p className="text-sm font-medium text-gray-600">{registration.phone}</p>
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
@@ -403,16 +526,79 @@ export default function CheckinAppPage() {
                       }`}>
                         {registration.checked_in ? 'Checked In' : ''}
                       </span>
-                      {!registration.checked_in && (
-                        <button
-                          onClick={() => handleCheckIn(registration)}
-                          disabled={checkingIn}
-                          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-                        >
-                          Check In
-                        </button>
-                      )}
                     </div>
+                  </div>
+                  
+                  {/* Editable counts for unchecked registrations */}
+                  {!registration.checked_in && (
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Adults
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="20"
+                          defaultValue={registration.adults_count || 1}
+                          id={`adults-${registration.id}`}
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Children
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="20"
+                          defaultValue={registration.children_count || 0}
+                          id={`children-${registration.id}`}
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Show original counts for checked in registrations */}
+                  {registration.checked_in && (
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Adults
+                        </label>
+                        <p className="w-full border border-gray-200 rounded px-2 py-1 bg-gray-50 text-sm">
+                          {registration.adults_count}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Children
+                        </label>
+                        <p className="w-full border border-gray-200 rounded px-2 py-1 bg-gray-50 text-sm">
+                          {registration.children_count}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-end">
+                    {!registration.checked_in && (
+                      <button
+                        onClick={() => {
+                          const adultsInput = document.getElementById(`adults-${registration.id}`) as HTMLInputElement;
+                          const childrenInput = document.getElementById(`children-${registration.id}`) as HTMLInputElement;
+                          const adultsCount = parseInt(adultsInput.value) || 1;
+                          const childrenCount = parseInt(childrenInput.value) || 0;
+                          handleQuickCheckInWithCounts(registration, adultsCount, childrenCount);
+                        }}
+                        disabled={checkingIn}
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {checkingIn && selectedRegistration?.id === registration.id ? 'Checking in...' : 'Check In'}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

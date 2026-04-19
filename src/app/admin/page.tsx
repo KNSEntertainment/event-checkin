@@ -11,6 +11,10 @@ interface AdminStats {
   totalRegistrations: number;
   totalCheckIns: number;
   totalLunchServed: number;
+  totalAdults: number;
+  totalChildren: number;
+  registrationsForExistingEvents: number;
+  registrationsForDeletedEvents: number;
 }
 
 interface EventWithCreator {
@@ -38,32 +42,27 @@ export default function AdminPage() {
     totalUsers: 0,
     totalRegistrations: 0,
     totalCheckIns: 0,
-    totalLunchServed: 0
+    totalLunchServed: 0,
+    totalAdults: 0,
+    totalChildren: 0,
+    registrationsForExistingEvents: 0,
+    registrationsForDeletedEvents: 0
   });
   const [events, setEvents] = useState<EventWithCreator[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'users' | 'reports'>('overview');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
 
   // Super admin email from environment variables
   const SUPER_ADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || 'admin@eventcheckin.com';
 
   useEffect(() => {
-    if (!isSignedIn) {
-      router.push('/sign-in');
-      return;
+    // Check if already authenticated via PIN
+    if (isAuthenticated) {
+      fetchAdminData();
     }
-
-    // Check if user is super admin
-    const userEmail = user?.primaryEmailAddress?.emailAddress;
-    console.log('Admin access check:', { userEmail, SUPER_ADMIN_EMAIL, isMatch: userEmail === SUPER_ADMIN_EMAIL });
-    
-    if (userEmail !== SUPER_ADMIN_EMAIL) {
-      setError(`Access denied. Super admin privileges required. Current email: ${userEmail}, Expected: ${SUPER_ADMIN_EMAIL}`);
-      setLoading(false);
-      return;
-    }
-
-    fetchAdminData();
-  }, [isSignedIn, user]);
+  }, [isAuthenticated]);
 
   const fetchAdminData = async () => {
     try {
@@ -123,16 +122,111 @@ export default function AdminPage() {
       .sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
   };
 
+  const handlePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError('');
+    
+    const envPin = process.env.NEXT_PUBLIC_ADMIN_PIN;
+    
+    // Debug logging
+    console.log('PIN Validation:', {
+      input: pinInput,
+      envPin: envPin,
+      expected: envPin,
+      match: pinInput === envPin
+    });
+    
+    if (envPin && pinInput === envPin) {
+      console.log('Before setIsAuthenticated - isAuthenticated:', isAuthenticated);
+      setIsAuthenticated(true);
+      setPinInput('');
+      console.log('After setIsAuthenticated - should redirect to dashboard');
+    } else {
+      setPinError('Invalid PIN');
+      setPinInput('');
+      console.log('PIN rejected');
+    }
+  };
+
   const getTopCreators = () => {
     const creatorCounts: { [key: string]: number } = {};
     events.forEach(event => {
-      creatorCounts[event.creatorEmail] = (creatorCounts[event.creatorEmail] || 0) + 1;
+      const creatorEmail = event.creatorEmail;
+      creatorCounts[creatorEmail] = (creatorCounts[creatorEmail] || 0) + 1;
     });
     
     return Object.entries(creatorCounts)
       .map(([email, eventCount]) => ({ email, eventCount }))
       .sort((a, b) => b.eventCount - a.eventCount);
   };
+
+  // Show PIN authentication form if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full space-y-8 p-8">
+          <div>
+            <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
+              <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+              Admin Dashboard
+            </h2>
+            <p className="mt-2 text-center text-sm text-gray-600">
+              Enter your PIN code to access the admin dashboard
+            </p>
+          </div>
+          
+          <form className="mt-8 space-y-6" onSubmit={handlePinSubmit}>
+            <div>
+              <label htmlFor="pin" className="sr-only">PIN Code</label>
+              <input
+                id="pin"
+                name="pin"
+                type="password"
+                autoComplete="off"
+                required
+                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm text-center text-2xl tracking-widest"
+                placeholder="Enter PIN"
+                value={pinInput}
+                onChange={(e) => {
+                  console.log('Input changed:', e.target.value);
+                  setPinInput(e.target.value);
+                }}
+                maxLength={10}
+              />
+            </div>
+
+            {pinError && (
+              <div className="text-red-600 text-sm text-center">
+                {pinError}
+              </div>
+            )}
+
+            <div>
+              <button
+                type="submit"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Access Dashboard
+              </button>
+            </div>
+          </form>
+          
+          <div className="text-center">
+            <Link
+              href="/dashboard"
+              className="text-blue-600 hover:text-blue-500 text-sm"
+            >
+              Back to Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -220,7 +314,7 @@ export default function AdminPage() {
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
@@ -257,13 +351,16 @@ export default function AdminPage() {
                 <div className="flex items-center">
                   <div className="flex-shrink-0 bg-purple-100 rounded-md p-3">
                     <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Registrations</dt>
-                      <dd className="text-lg font-semibold text-gray-900">{stats.totalRegistrations}</dd>
+                      <dt className="text-sm font-medium text-gray-500 truncate">Total People</dt>
+                      <dd className="text-lg font-semibold text-gray-900">{stats.totalAdults + stats.totalChildren}</dd>
+                      <div className="text-xs text-gray-500">
+                        {stats.totalAdults} adults, {stats.totalChildren} children
+                      </div>
                     </dl>
                   </div>
                 </div>
@@ -273,7 +370,7 @@ export default function AdminPage() {
                 <div className="flex items-center">
                   <div className="flex-shrink-0 bg-yellow-100 rounded-md p-3">
                     <svg className="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
                   </div>
                   <div className="ml-5 w-0 flex-1">
@@ -494,29 +591,19 @@ export default function AdminPage() {
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-2">Registration Statistics</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Avg. Registrations/Event</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {events.length > 0 ? Math.round(events.reduce((sum, e) => sum + e.registrationCount, 0) / events.length) : 0}
-                      </span>
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">Registration Breakdown</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">{stats.totalRegistrations}</div>
+                      <div className="text-sm text-gray-600">Total Registrations</div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Check-in Rate</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {stats.totalRegistrations > 0 
-                          ? Math.round((stats.totalCheckIns / stats.totalRegistrations) * 100) 
-                          : 0}%
-                      </span>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{stats.registrationsForExistingEvents}</div>
+                      <div className="text-sm text-gray-600">From Active Events</div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Lunch Service Rate</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {stats.totalRegistrations > 0 
-                          ? Math.round((stats.totalLunchServed / stats.totalRegistrations) * 100) 
-                          : 0}%
-                      </span>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-red-600">{stats.registrationsForDeletedEvents}</div>
+                      <div className="text-sm text-gray-600">From Deleted Events</div>
                     </div>
                   </div>
                 </div>

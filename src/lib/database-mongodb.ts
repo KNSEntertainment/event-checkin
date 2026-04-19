@@ -141,6 +141,8 @@ export const getRegistrationById = async (db: any, registrationId: string) => {
 export const updateRegistration = async (db: any, registrationId: string, updateData: {
   checked_in?: boolean;
   checked_in_at?: Date;
+  adults_count?: number;
+  children_count?: number;
 }) => {
   const registration = await Registration.findOneAndUpdate(
     { id: registrationId }, 
@@ -207,7 +209,7 @@ export const getOrganizerByClerkId = async (db: any, clerkUserId: string) => {
 };
 
 export const deleteEvent = async (db: any, eventId: string) => {
-  const result = await Event.findByIdAndDelete(eventId);
+  const result = await Event.findOneAndDelete({ id: eventId });
   return result ? result.toObject() : null;
 };
 

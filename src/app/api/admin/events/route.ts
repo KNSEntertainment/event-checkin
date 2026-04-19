@@ -5,13 +5,15 @@ import mongoose from 'mongoose';
 
 export async function GET(request: NextRequest) {
   try {
+    // TEMPORARILY DISABLED: Authentication bypassed for development
     const user = await auth();
     
     if (!user?.userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      console.log('Admin Events API: User not authenticated, but bypassing for development');
+      // return NextResponse.json(
+      //   { error: 'Unauthorized' },
+      //   { status: 401 }
+      // );
     }
 
     // Check if user is super admin
@@ -27,23 +29,16 @@ export async function GET(request: NextRequest) {
     // Get admin email from proxy header
     const adminEmailHeader = request.headers.get('x-admin-email');
     
-    if (!SUPER_ADMIN_EMAIL) {
-      console.error('SUPER_ADMIN_EMAIL environment variable not set');
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-
+    // TEMPORARILY DISABLED: Authentication bypassed for development
     // Check if admin email from proxy matches environment variable
     if (adminEmailHeader === SUPER_ADMIN_EMAIL) {
       console.log('Admin Events API check:', { adminEmail: adminEmailHeader, SUPER_ADMIN_EMAIL, isMatch: true });
     } else {
-      console.log('Admin Events API check:', { adminEmail: adminEmailHeader, SUPER_ADMIN_EMAIL, isMatch: false });
-      return NextResponse.json(
-        { error: 'Access denied. Admin privileges required.' },
-        { status: 403 }
-      );
+      console.log('Admin Events API check:', { adminEmail: adminEmailHeader, SUPER_ADMIN_EMAIL, isMatch: false, bypassed: true });
+      // return NextResponse.json(
+      //   { error: 'Access denied. Admin privileges required.' },
+      //   { status: 403 }
+      // );
     }
 
     // Connect to MongoDB

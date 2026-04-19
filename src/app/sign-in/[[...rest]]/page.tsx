@@ -11,7 +11,7 @@ export default function SignInPage() {
           </p>
         </div>
         <SignIn 
-          forceRedirectUrl="/create-event"
+          // forceRedirectUrl="/create-event"
           signUpUrl="/sign-up"
         />
       </div>

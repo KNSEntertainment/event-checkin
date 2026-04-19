@@ -35,10 +35,12 @@ export async function POST(
       );
     }
 
-    // Check in Registration
+    // Check in Registration with updated counts
     const registration = await updateRegistration({}, registrationId, {
       checked_in: true,
-      checked_in_at: new Date()
+      checked_in_at: new Date(),
+      adults_count: adults_count,
+      children_count: children_count
     });
 
     return NextResponse.json({ registration });
