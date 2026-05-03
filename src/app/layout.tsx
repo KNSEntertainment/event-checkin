@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CookieConsent from "@/components/CookieConsent";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,6 +20,27 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Event Check-in",
   description: "Simple and fast event check-in system",
+  manifest: "/manifest.json",
+  themeColor: "#3b82f6",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Event Check-in",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Event Check-in",
+    title: "Event Check-in",
+    description: "Simple and fast event check-in system",
+  },
+  twitter: {
+    card: "summary",
+    title: "Event Check-in",
+    description: "Simple and fast event check-in system",
+  },
 };
 
 export default function RootLayout({
@@ -32,6 +54,15 @@ export default function RootLayout({
         lang="en"
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       >
+        <head>
+          <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.svg" />
+          <link rel="icon" type="image/svg+xml" href="/icons/icon-192x192.svg" />
+          <link rel="manifest" href="/manifest.json" />
+          <meta name="theme-color" content="#3b82f6" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+          <meta name="apple-mobile-web-app-title" content="Event Check-in" />
+        </head>
         <body className="min-h-full flex flex-col">
           {/* Skip Links for Accessibility */}
           <a 
@@ -53,6 +84,7 @@ export default function RootLayout({
           </main>
           <Footer />
           <CookieConsent />
+          <ServiceWorkerRegister />
         </body>
       </html>
     </ClerkProvider>
