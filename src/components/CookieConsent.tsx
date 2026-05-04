@@ -87,7 +87,7 @@ export default function CookieConsent({ onAccept }: CookieConsentProps) {
                 </Link>
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2" role="group" aria-label="Cookie consent options">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Cookie consent options">
               <button
                 onClick={() => setShowSettings(true)}
                 onKeyDown={(e) => {
@@ -96,7 +96,7 @@ export default function CookieConsent({ onAccept }: CookieConsentProps) {
                     setShowSettings(true);
                   }
                 }}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
                 aria-label="Customize cookie preferences"
               >
                 Customize
@@ -109,7 +109,7 @@ export default function CookieConsent({ onAccept }: CookieConsentProps) {
                     handleReject();
                   }
                 }}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
                 aria-label="Reject all non-essential cookies"
               >
                 Reject All
@@ -122,7 +122,7 @@ export default function CookieConsent({ onAccept }: CookieConsentProps) {
                     handleAccept(true);
                   }
                 }}
-                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
                 aria-label="Accept all cookies including analytics"
               >
                 Accept All
@@ -197,7 +197,7 @@ export default function CookieConsent({ onAccept }: CookieConsentProps) {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-200" role="group" aria-label="Cookie preference actions">
+            <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-200" role="group" aria-label="Cookie preference actions">
               <button
                 onClick={() => setShowSettings(false)}
                 onKeyDown={(e) => {
@@ -206,39 +206,37 @@ export default function CookieConsent({ onAccept }: CookieConsentProps) {
                     setShowSettings(false);
                   }
                 }}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
                 aria-label="Cancel and return to simple cookie consent"
               >
                 Cancel
               </button>
-              <div className="flex gap-2 ml-auto">
-                <button
-                  onClick={handleReject}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleReject();
-                    }
-                  }}
-                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  aria-label="Reject all non-essential cookies"
-                >
-                  Reject All
-                </button>
-                <button
-                  onClick={handleSaveSettings}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleSaveSettings();
-                    }
-                  }}
-                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  aria-label="Save cookie preferences"
-                >
-                  Save Preferences
-                </button>
-              </div>
+              <button
+                onClick={handleReject}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleReject();
+                  }
+                }}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
+                aria-label="Reject all non-essential cookies"
+              >
+                Reject All
+              </button>
+              <button
+                onClick={handleSaveSettings}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSaveSettings();
+                  }
+                }}
+                className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
+                aria-label="Save cookie preferences"
+              >
+                Save Preferences
+              </button>
             </div>
           </div>
         )}
