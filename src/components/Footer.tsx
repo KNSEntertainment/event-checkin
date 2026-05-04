@@ -1,12 +1,127 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
 
 export default function Footer() {
+  const { isSignedIn, user } = useUser();
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showPrivacyMenu, setShowPrivacyMenu] = useState(false);
+  const [events, setEvents] = useState<any[]>([]);
+
+  // Fetch user events for data deletion count
+  useEffect(() => {
+    if (isSignedIn) {
+      fetch('/api/user/events')
+        .then(res => res.json())
+        .then(data => setEvents(data.events || []))
+        .catch(() => setEvents([]));
+    }
+  }, [isSignedIn]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showPrivacyMenu) {
+        setShowPrivacyMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPrivacyMenu]);
+
+  const handleDataExport = async () => {
+    try {
+      setIsExporting(true);
+      
+      const response = await fetch('/api/user/data-export');
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // Get filename from Content-Disposition header or create one
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `event-checkin-data-export-${new Date().toISOString().split('T')[0]}.json`;
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+        
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+    } catch (err) {
+      console.error('Error exporting data');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDataDeletion = async () => {
+    const confirmationMessage = `Are you sure you want to delete all your data? This action cannot be undone and will permanently delete:
+    
+    - All events you created
+    - All registrations for your events
+    - Your organizer account information
+    
+    This action is irreversible and will remove all your data from our system.`;
+
+    if (!confirm(confirmationMessage)) {
+      return;
+    }
+
+    const finalConfirmation = `This is your final warning. Deleting your data will:
+    
+    1. Remove all ${events.length} events you created
+    2. Delete all registration data for your events
+    3. Remove your organizer account
+    4. You will need to create a new account to use our services again
+    
+    Type 'DELETE MY DATA' to confirm this irreversible action.`;
+
+    const userConfirmation = prompt(finalConfirmation);
+    if (userConfirmation !== 'DELETE MY DATA') {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      
+      const response = await fetch('/api/user/data-deletion', {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Log user out after 3 seconds
+        setTimeout(() => {
+          window.location.href = '/sign-out';
+        }, 3000);
+      }
+    } catch (err) {
+      console.error('Error deleting data');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <footer className="bg-gray-50 border-t border-gray-200" role="contentinfo">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
@@ -56,9 +171,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Legal */}
+          {/* Privacy & Data */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Legal</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">Privacy & Data</h3>
             <ul className="space-y-2" role="list">
               <li>
                 <Link 
@@ -69,6 +184,37 @@ export default function Footer() {
                   Privacy Policy
                 </Link>
               </li>
+              {isSignedIn && (
+                <>
+                  <li>
+                    <button
+                      onClick={handleDataExport}
+                      disabled={isExporting}
+                      className="text-gray-600 hover:text-gray-900 text-sm transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Download your data"
+                    >
+                      {isExporting ? 'Exporting...' : 'Download My Data'}
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={handleDataDeletion}
+                      disabled={isDeleting}
+                      className="text-red-600 hover:text-red-700 text-sm transition-colors text-left focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Delete your data"
+                    >
+                      {isDeleting ? 'Deleting...' : 'Delete My Data'}
+                    </button>
+                  </li>
+                </>
+              )}
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">Legal</h3>
+            <ul className="space-y-2" role="list">
               <li>
                 <Link 
                   href="/accessibility" 
