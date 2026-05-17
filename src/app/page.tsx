@@ -2,21 +2,21 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useUser, SignInButton, UserButton } from '@clerk/nextjs';
+import { useUser, SignInButton } from '@clerk/nextjs';
 import { useEffect } from 'react';
 
 export default function Home() {
-  const { isSignedIn, user } = useUser();
+  const { isLoaded, isSignedIn } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (isSignedIn) {
+    if (isLoaded && isSignedIn) {
       router.push('/dashboard');
     }
-  }, [isSignedIn, router]);
+  }, [isLoaded, isSignedIn, router]);
 
   // Show loading state while checking authentication
-  if (isSignedIn === undefined) {
+  if (!isLoaded) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

@@ -265,23 +265,26 @@ export default function AdminPage() {
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">Super Admin Dashboard</h1>
-              <span className="ml-3 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+          <div className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:py-5">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Super Admin Dashboard</h1>
+                <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800">
                 ADMIN
               </span>
+              </div>
+              <p className="mt-1 text-sm text-gray-500">
+                Monitor events, users, registrations, and check-in performance.
+              </p>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
               <Link
                 href="/dashboard"
-                className="text-gray-600 hover:text-gray-900"
+                className="inline-flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:text-gray-900 sm:flex-none"
               >
                 Back to Dashboard
               </Link>
-              <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                A
-              </div>
+        
             </div>
           </div>
         </div>
@@ -290,7 +293,7 @@ export default function AdminPage() {
       {/* Navigation Tabs */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8">
+          <nav className="-mb-px flex gap-6 overflow-x-auto whitespace-nowrap">
             {[
               { id: 'overview', label: 'Overview' },
               { id: 'events', label: 'Events' },
@@ -300,7 +303,7 @@ export default function AdminPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`shrink-0 py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -408,8 +411,8 @@ export default function AdminPage() {
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900">Recent Events</h3>
               </div>
-              <div className="overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
+              <div className="overflow-x-auto">
+                <table className="min-w-[760px] divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -466,8 +469,8 @@ export default function AdminPage() {
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900">All Events</h3>
             </div>
-            <div className="overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-[860px] divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -620,7 +623,7 @@ export default function AdminPage() {
                 <h3 className="text-lg font-medium text-gray-900">Detailed Event Report</h3>
               </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-[980px] divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">

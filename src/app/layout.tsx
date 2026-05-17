@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import Header from "@/components/Header";
@@ -21,7 +21,6 @@ export const metadata: Metadata = {
   title: "Event Check-in",
   description: "Simple and fast event check-in system",
   manifest: "/manifest.json",
-  themeColor: "#3b82f6",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -43,6 +42,10 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#3b82f6",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -58,7 +61,6 @@ export default function RootLayout({
           <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.svg" />
           <link rel="icon" type="image/svg+xml" href="/icons/icon-192x192.svg" />
           <link rel="manifest" href="/manifest.json" />
-          <meta name="theme-color" content="#3b82f6" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="default" />
           <meta name="apple-mobile-web-app-title" content="Event Check-in" />

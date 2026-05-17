@@ -219,17 +219,17 @@ This action cannot be undone.`;
              
                 </div>
               </div>
-              <div className="flex space-x-3">
+              <div className="flex flex-col md:flex-row gap-3">
                 {/* Admin Access Button */}
                 {user?.primaryEmailAddress?.emailAddress === SUPER_ADMIN_EMAIL && (
                   <Link
                     href="/admin"
                     className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 text-white font-medium rounded-xl hover:from-red-700 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                   >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 mr-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Admin Panel
+                    <span className="text-white">Admin Panel</span>
                   </Link>
                 )}
                                 <Link
@@ -285,10 +285,10 @@ This action cannot be undone.`;
               href="/create-event"
               className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 mr-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              Create Your First Event
+              <span className="text-white">Create Your First Event</span>
             </Link>
           </div>
         ) : (

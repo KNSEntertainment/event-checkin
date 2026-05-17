@@ -190,7 +190,7 @@ export default function Footer() {
                     <button
                       onClick={handleDataExport}
                       disabled={isExporting}
-                      className="text-gray-600 hover:text-gray-900 text-sm transition-colors text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="m-0 inline min-h-0 min-w-0 p-0 text-left align-baseline text-sm text-gray-600 transition-colors hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Download your data"
                     >
                       {isExporting ? 'Exporting...' : 'Download My Data'}
@@ -200,7 +200,7 @@ export default function Footer() {
                     <button
                       onClick={handleDataDeletion}
                       disabled={isDeleting}
-                      className="text-red-600 hover:text-red-700 text-sm transition-colors text-left focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="m-0 inline min-h-0 min-w-0 p-0 text-left align-baseline text-sm text-red-600 transition-colors hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Delete your data"
                     >
                       {isDeleting ? 'Deleting...' : 'Delete My Data'}
